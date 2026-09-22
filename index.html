@@ -217,21 +217,29 @@ async function load() {
     return;
   }
 
+  // "오늘"은 스캔 데이터 중 가장 최근 날짜가 아니라, 실제 오늘(KST) 날짜 기준으로 판단한다.
+  // (스캔에서 조건에 맞는 종목이 0건인 날은 signals에 아무 행도 안 쌓이므로, 그런 날이 이어지면
+  //  "가장 최근 스캔일" 기준 판단은 며칠 전 신호를 계속 "오늘의 추천"으로 잘못 표시하게 된다.)
+  const todayStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+  asofEl.textContent = todayStr + " 기준";
+
   if (!data || data.length === 0) {
     cardsEl.innerHTML = `<div class="empty">아직 추천 종목이 없습니다. 다음 스캔을 기다려 주세요.</div>`;
     pastEl.innerHTML = `<div class="empty">아직 데이터가 없습니다.</div>`;
-    asofEl.textContent = "-";
     badgeEl.textContent = "대기중";
     return;
   }
 
-  const latestDate = data[0].scan_date;
-  const latest = data.filter(s => s.scan_date === latestDate);
-  const past = data.filter(s => s.scan_date !== latestDate);
+  const latest = data.filter(s => s.scan_date === todayStr);
+  const past = data.filter(s => s.scan_date !== todayStr);
 
-  asofEl.textContent = latestDate + " 기준";
-  badgeEl.textContent = latest.length + "건";
-  cardsEl.innerHTML = latest.map(cardHTML).join("");
+  if (latest.length === 0) {
+    cardsEl.innerHTML = `<div class="empty">오늘은 조건에 맞는 신규 추천이 없습니다.</div>`;
+    badgeEl.textContent = "0건";
+  } else {
+    badgeEl.textContent = latest.length + "건";
+    cardsEl.innerHTML = latest.map(cardHTML).join("");
+  }
 
   pastEl.innerHTML = past.length > 0
     ? pastTableHTML(past)
