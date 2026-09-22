@@ -203,7 +203,7 @@ function wireExpandableRows(container, rows) {
       const open = !detailRow.hidden;
       if (open) { detailRow.hidden = true; tr.classList.remove("open"); return; }
       if (!inner.dataset.built) {
-        inner.appendChild(buildSignalCard(rows[idx]));
+        inner.appendChild(buildSignalCard(rows[idx], { showReason: false }));
         inner.dataset.built = "1";
       }
       detailRow.hidden = false;

@@ -128,6 +128,14 @@
 
   <section>
     <div class="section-head">
+      <h2>오늘의 추천 종목</h2>
+      <span class="badge normal" id="signalsBadge">불러오는 중</span>
+    </div>
+    <div class="cards" id="signalCards"><div class="empty">불러오는 중…</div></div>
+  </section>
+
+  <section>
+    <div class="section-head">
       <h2>보유 종목</h2>
     </div>
     <div id="holdingsWrap"><div class="empty">불러오는 중…</div></div>
@@ -191,7 +199,7 @@ function wireExpandableRows(container, tickers) {
         const sig = await fetchSignalByTicker(tickers[idx]);
         inner.textContent = "";
         if (sig) {
-          inner.appendChild(buildSignalCard(sig));
+          inner.appendChild(buildSignalCard(sig, { showReason: false }));
         } else {
           inner.innerHTML = `<div class="empty">이 종목의 추천 당시 정보를 찾을 수 없습니다.</div>`;
         }
@@ -264,11 +272,27 @@ async function boot() {
   loginWrap.hidden = true;
   appWrap.hidden = false;
 
-  const [{ data: positions, error: posErr }, { data: trades, error: tradeErr }, { data: snaps, error: snapErr }] = await Promise.all([
+  const todayStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+  const [{ data: positions, error: posErr }, { data: trades, error: tradeErr }, { data: snaps, error: snapErr }, { data: todaySignals, error: sigErr }] = await Promise.all([
     supabase.from("positions").select("*").eq("status", "open").order("entry_date", { ascending: false }),
     supabase.from("trades").select("*").order("exit_date", { ascending: false }).limit(20),
     supabase.from("equity_snapshots").select("*").order("snap_date", { ascending: true }).limit(200),
+    supabase.from("signals").select("scan_date,ticker,name,reason,score,details").eq("scan_date", todayStr).order("score", { ascending: false }),
   ]);
+
+  const cardsEl = document.getElementById("signalCards");
+  const badgeEl = document.getElementById("signalsBadge");
+  if (sigErr) {
+    cardsEl.innerHTML = `<div class="empty">불러오기 실패: ${sigErr.message}</div>`;
+    badgeEl.textContent = "오류";
+  } else if (!todaySignals || todaySignals.length === 0) {
+    cardsEl.innerHTML = `<div class="empty">오늘은 조건에 맞는 신규 추천이 없습니다.</div>`;
+    badgeEl.textContent = "0건";
+  } else {
+    badgeEl.textContent = todaySignals.length + "건";
+    cardsEl.innerHTML = "";
+    todaySignals.forEach(sig => cardsEl.appendChild(buildSignalCard(sig)));
+  }
 
   if (posErr || tradeErr || snapErr) {
     document.getElementById("asofLabel").textContent = "불러오기 실패";

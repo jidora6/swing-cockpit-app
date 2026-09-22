@@ -47,7 +47,8 @@ function finTile(label, val, delta, cls) {
  * signals 행(sig: {name, ticker, scan_date, reason, details})을 받아 상세 카드 DOM을 만든다.
  * details 안의 어떤 필드가 없어도(포지션/매매내역에서 조회해온 signal은 필드가 없을 수 있음) 안전하게 생략한다.
  */
-export function buildSignalCard(sig) {
+export function buildSignalCard(sig, opts = {}) {
+  const showReason = opts.showReason !== false;
   const d = sig.details || {};
   const chg = typeof d.chg_pct === "number" ? d.chg_pct : null;
   const chgClass = chg == null ? "" : (chg >= 0 ? "up" : "down");
@@ -90,7 +91,7 @@ export function buildSignalCard(sig) {
       </div>` : ""}
     </div>
     ${d.spark && d.spark.length > 1 ? `<div class="spark"><svg data-role="spark"></svg><div class="spark-legend"><span>최근 ${d.spark.length}거래일</span>${d.proximity != null ? `<span>52주고가대비 ${(d.proximity * 100).toFixed(0)}%</span>` : ""}</div></div>` : ""}
-    ${sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
+    ${showReason && sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
     ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
     ${d.stop_price != null || d.max_loss_pct != null ? `
     <div class="risk-grid">

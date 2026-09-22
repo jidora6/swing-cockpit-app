@@ -1,4 +1,8 @@
 /* 추천 종목 상세 카드 스타일 — index.html/owner.html 공용. card.js의 buildSignalCard()가 만드는 DOM용. */
+.badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:99px; letter-spacing:.02em; }
+.badge.normal{ background:var(--accent-soft); color:var(--accent); }
+.badge.muted{ background:var(--surface-2); color:var(--ink-muted); }
+
 .cards{ display:flex; flex-direction:column; gap:10px; }
 .card{
   background:var(--surface); border:1px solid var(--border); border-radius:16px;
