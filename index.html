@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d6b5f">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -81,6 +81,14 @@
   .empty{ padding:22px 14px; text-align:center; color:var(--ink-faint); font-size:12.5px;
     background:var(--surface); border:1px dashed var(--border); border-radius:12px; }
 
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .table-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:auto; box-shadow:var(--shadow); }
+  th,td{ padding:9px 11px; text-align:right; white-space:nowrap; }
+  th:first-child,td:first-child{ text-align:left; }
+  thead th{ font-size:10.5px; color:var(--ink-muted); font-weight:500; border-bottom:1px solid var(--border); }
+  tbody tr+tr td{ border-top:1px solid var(--border); }
+  td.ret.up{ color:var(--up); font-weight:600; } td.ret.down{ color:var(--down); font-weight:600; }
+
   footer{ margin:30px 0 24px; font-size:11px; color:var(--ink-faint); line-height:1.6; padding-block-end:env(safe-area-inset-bottom, 0px); }
 </style>
 </head>
@@ -102,6 +110,14 @@
   <div class="cards" id="signalCards">
     <div class="empty">불러오는 중…</div>
   </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <h2>지난 추천 성과</h2>
+    <span class="note">추천가 대비 현재가 기준</span>
+  </div>
+  <div id="pastWrap"><div class="empty">불러오는 중…</div></div>
 </section>
 
 <footer>
@@ -143,26 +159,55 @@ function cardHTML(sig) {
   `;
 }
 
+function pastRowHTML(sig) {
+  const d = sig.details || {};
+  const ret = d.latest_return_pct;
+  const retClass = ret == null ? "" : (ret >= 0 ? "up" : "down");
+  return `
+    <tr>
+      <td>${sig.name}<br><span class="code mono">${sig.ticker}</span></td>
+      <td class="mono">${sig.scan_date}</td>
+      <td class="mono">${d.price != null ? fmtWon(d.price) : "-"}</td>
+      <td class="mono">${d.latest_price != null ? fmtWon(d.latest_price) : "-"}</td>
+      <td class="ret ${retClass} mono">${ret != null ? fmtPct(ret) : "-"}</td>
+    </tr>
+  `;
+}
+
+function pastTableHTML(rows) {
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>종목</th><th>추천일</th><th>추천가</th><th>현재가</th><th>수익률</th></tr></thead>
+        <tbody>${rows.map(pastRowHTML).join("")}</tbody>
+      </table>
+    </div>
+  `;
+}
+
 async function load() {
   const asofEl = document.getElementById("asofLabel");
   const badgeEl = document.getElementById("signalsBadge");
   const cardsEl = document.getElementById("signalCards");
+  const pastEl = document.getElementById("pastWrap");
 
   const { data, error } = await supabase
     .from("signals")
     .select("scan_date,ticker,name,reason,score,details")
     .order("scan_date", { ascending: false })
     .order("score", { ascending: false })
-    .limit(20);
+    .limit(100);
 
   if (error) {
     cardsEl.innerHTML = `<div class="empty">불러오기 실패: ${error.message}</div>`;
+    pastEl.innerHTML = "";
     badgeEl.textContent = "오류";
     return;
   }
 
   if (!data || data.length === 0) {
     cardsEl.innerHTML = `<div class="empty">아직 추천 종목이 없습니다. 다음 스캔을 기다려 주세요.</div>`;
+    pastEl.innerHTML = `<div class="empty">아직 데이터가 없습니다.</div>`;
     asofEl.textContent = "-";
     badgeEl.textContent = "대기중";
     return;
@@ -170,10 +215,15 @@ async function load() {
 
   const latestDate = data[0].scan_date;
   const latest = data.filter(s => s.scan_date === latestDate);
+  const past = data.filter(s => s.scan_date !== latestDate);
 
   asofEl.textContent = latestDate + " 기준";
   badgeEl.textContent = latest.length + "건";
   cardsEl.innerHTML = latest.map(cardHTML).join("");
+
+  pastEl.innerHTML = past.length > 0
+    ? pastTableHTML(past)
+    : `<div class="empty">아직 지난 추천 기록이 없습니다.</div>`;
 }
 
 load();
