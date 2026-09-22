@@ -49,6 +49,7 @@ function finTile(label, val, delta, cls) {
  */
 export function buildSignalCard(sig, opts = {}) {
   const showReason = opts.showReason !== false;
+  const expandFin = !!opts.expandFin;
   const d = sig.details || {};
   const chg = typeof d.chg_pct === "number" ? d.chg_pct : null;
   const chgClass = chg == null ? "" : (chg >= 0 ? "up" : "down");
@@ -64,12 +65,15 @@ export function buildSignalCard(sig, opts = {}) {
     const perTile = fin.per != null
       ? finTile("PER", fin.per.toFixed(1) + "배", "현재 주가 기준", "flat")
       : finTile("PER", "산출불가", "당기순손실 상태", "flat");
+    const toggleHtml = expandFin
+      ? `<div class="fin-label">재무 스냅샷 (영업이익률·EPS·BPS·ROE·PER)</div>`
+      : `<button class="fin-toggle" data-role="fintoggle" aria-expanded="false">
+          <span data-role="fintext">재무 스냅샷 보기 (영업이익률·EPS·BPS·ROE·PER)</span>
+          <i class="chev" aria-hidden="true">⌄</i>
+        </button>`;
     finHtml = `
-      <button class="fin-toggle" data-role="fintoggle" aria-expanded="false">
-        <span data-role="fintext">재무 스냅샷 보기 (영업이익률·EPS·BPS·ROE·PER)</span>
-        <i class="chev" aria-hidden="true">⌄</i>
-      </button>
-      <div class="fin-body" data-role="finbody" hidden>
+      ${toggleHtml}
+      <div class="fin-body" data-role="finbody" ${expandFin ? "" : "hidden"}>
         <svg data-role="finchart"></svg>
         <div class="fin-grid">${epsTile}${bpsTile}${roeTile}${perTile}</div>
         <div class="fin-note">DART 공시 기준 · 지배주주 귀속분 · ${fin.years[0]}~${fin.years[fin.years.length - 1]}</div>
@@ -107,17 +111,21 @@ export function buildSignalCard(sig, opts = {}) {
     drawSpark(card.querySelector('[data-role="spark"]'), d.spark);
   }
   if (fin) {
-    const toggle = card.querySelector('[data-role="fintoggle"]');
-    const body = card.querySelector('[data-role="finbody"]');
-    let drawn = false;
-    toggle.addEventListener("click", () => {
-      const open = toggle.getAttribute("aria-expanded") === "true";
-      toggle.setAttribute("aria-expanded", String(!open));
-      body.hidden = open;
-      card.querySelector('[data-role="fintext"]').textContent = open
-        ? "재무 스냅샷 보기 (영업이익률·EPS·BPS·ROE·PER)" : "재무 스냅샷 접기";
-      if (!open && !drawn) { drawn = true; drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin); }
-    });
+    if (expandFin) {
+      drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin);
+    } else {
+      const toggle = card.querySelector('[data-role="fintoggle"]');
+      const body = card.querySelector('[data-role="finbody"]');
+      let drawn = false;
+      toggle.addEventListener("click", () => {
+        const open = toggle.getAttribute("aria-expanded") === "true";
+        toggle.setAttribute("aria-expanded", String(!open));
+        body.hidden = open;
+        card.querySelector('[data-role="fintext"]').textContent = open
+          ? "재무 스냅샷 보기 (영업이익률·EPS·BPS·ROE·PER)" : "재무 스냅샷 접기";
+        if (!open && !drawn) { drawn = true; drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin); }
+      });
+    }
   }
   return card;
 }

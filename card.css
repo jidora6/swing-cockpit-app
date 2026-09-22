@@ -34,6 +34,7 @@
   display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
 .fin-toggle .chev{ transition:transform .18s; color:var(--ink-faint); font-style:normal; }
 .fin-toggle[aria-expanded="true"] .chev{ transform:rotate(180deg); }
+.fin-label{ font-size:11.5px; font-weight:600; color:var(--ink-muted); margin-top:11px; }
 .fin-body{ margin-top:9px; padding-top:10px; border-top:1px solid var(--border); }
 .fin-body[hidden]{ display:none; }
 .fin-body svg{ display:block; width:100%; height:auto; }
