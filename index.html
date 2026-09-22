@@ -279,28 +279,20 @@ function buildSignalCard(sig) {
   return card;
 }
 
-const STATUS_LABEL = {
-  open: { text: "보유중", cls: "normal" },
-  closed: { text: "청산완료", cls: "muted" },
-  not_entered: { text: "미체결", cls: "muted" },
-};
-
+// 보유중/청산완료 같은 상태는 육지완 님 개인 계좌 정보라 공개 뷰어에는 절대 표시하지 않는다.
+// (signals 테이블 자체가 anon 키로 누구나 읽을 수 있어서, 애초에 백엔드에서도 이 값을 안 담는다 —
+//  여기 프론트는 혹시라도 details에 남아있을 경우까지 대비해 이중으로 무시한다.)
 function pastRowHTML(sig) {
   const d = sig.details || {};
-  const closed = d.position_status === "closed";
-  const ret = closed ? d.realized_return_pct : d.latest_return_pct;
+  const ret = d.latest_return_pct;
   const retClass = ret == null ? "" : (ret >= 0 ? "up" : "down");
-  const st = STATUS_LABEL[d.position_status] || null;
-  const priceLabel = closed ? "청산가" : "현재가";
-  const priceVal = closed ? null : d.latest_price;
   return `
     <tr>
       <td>${sig.name}<br><span class="code mono">${sig.ticker}</span></td>
       <td class="mono">${sig.scan_date}</td>
       <td class="mono">${d.price != null ? fmtWon(d.price) : "-"}</td>
-      <td class="mono">${priceVal != null ? fmtWon(priceVal) : "-"}</td>
+      <td class="mono">${d.latest_price != null ? fmtWon(d.latest_price) : "-"}</td>
       <td class="ret ${retClass} mono">${ret != null ? fmtPct(ret) : "-"}</td>
-      <td>${st ? `<span class="badge ${st.cls}">${st.text}</span>` : "-"}</td>
     </tr>
   `;
 }
@@ -309,7 +301,7 @@ function pastTableHTML(rows) {
   return `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>종목</th><th>추천일</th><th>추천가</th><th>현재가</th><th>수익률</th><th>상태</th></tr></thead>
+        <thead><tr><th>종목</th><th>추천일</th><th>추천가</th><th>현재가</th><th>수익률</th></tr></thead>
         <tbody>${rows.map(pastRowHTML).join("")}</tbody>
       </table>
     </div>
