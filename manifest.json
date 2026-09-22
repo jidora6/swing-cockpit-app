@@ -1,0 +1,14 @@
+{
+  "name": "스윙콕핏 — 추천 종목",
+  "short_name": "스윙콕핏",
+  "description": "스윙콕핏 모의투자 오늘의 추천 종목",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f2ec",
+  "theme_color": "#0d6b5f",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

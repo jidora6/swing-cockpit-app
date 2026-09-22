@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>스윙콕핏 — 추천 종목</title>
+<meta name="description" content="스윙콕핏 오늘의 추천 종목">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d6b5f">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f5f2ec; --surface:#ffffff; --surface-2:#eeeadf;
+    --border:#e2ddd0; --ink:#1c1d19; --ink-muted:#6c6a5f; --ink-faint:#9c9a8d;
+    --accent:#0d6b5f; --accent-ink:#ffffff; --accent-soft:#e3efec;
+    --up:#c8382c; --up-soft:#f7e4e1; --down:#2a5fc4; --down-soft:#e2eaf9;
+    --warn:#a9700f; --warn-soft:#f4e8d2; --shadow: 0 1px 2px rgba(28,29,25,.06), 0 6px 20px -8px rgba(28,29,25,.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14181a; --surface:#1b201f; --surface-2:#212724;
+      --border:#2b322d; --ink:#e9e6dd; --ink-muted:#a4a294; --ink-faint:#726f63;
+      --accent:#3fcdb8; --accent-ink:#0c1615; --accent-soft:#1c2f2b;
+      --up:#ec6b5e; --up-soft:#3a2220; --down:#7fa8f2; --down-soft:#1f2a3d;
+      --warn:#e3ad55; --warn-soft:#3a2f18; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -10px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14181a; --surface:#1b201f; --surface-2:#212724;
+    --border:#2b322d; --ink:#e9e6dd; --ink-muted:#a4a294; --ink-faint:#726f63;
+    --accent:#3fcdb8; --accent-ink:#0c1615; --accent-soft:#1c2f2b;
+    --up:#ec6b5e; --up-soft:#3a2220; --down:#7fa8f2; --down-soft:#1f2a3d;
+    --warn:#e3ad55; --warn-soft:#3a2f18; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -10px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink); margin:0;
+    font-family:"IBM Plex Sans KR","Noto Sans KR",system-ui,sans-serif;
+    padding-inline:16px; max-width:720px; margin-inline:auto;
+  }
+  .mono{ font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+  h1,h2{ text-wrap:balance; margin:0; }
+
+  header.top{
+    position:sticky; top:env(safe-area-inset-top, 0px);
+    background:var(--bg); padding-block:18px 10px; z-index:5;
+    border-bottom:1px solid var(--border);
+  }
+  .brand{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .brand h1{ font-size:19px; font-weight:700; letter-spacing:-.01em; }
+  .brand .asof{ font-size:11px; color:var(--ink-faint); }
+  .sub{ font-size:12px; color:var(--ink-muted); margin-top:6px; }
+
+  section{ margin-top:22px; }
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; gap:8px; }
+  .section-head h2{ font-size:15px; font-weight:600; }
+  .section-head .note{ font-size:11px; color:var(--ink-faint); }
+
+  .badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:99px; letter-spacing:.02em; }
+  .badge.normal{ background:var(--accent-soft); color:var(--accent); }
+
+  .cards{ display:flex; flex-direction:column; gap:10px; }
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:14px 15px; box-shadow:var(--shadow);
+  }
+  .card .row1{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .card .name{ font-size:15px; font-weight:700; }
+  .card .code{ font-size:11px; color:var(--ink-faint); margin-left:6px; font-weight:400; }
+  .card .price{ font-size:14px; font-weight:600; text-align:right; }
+  .card .chg{ font-size:11px; margin-top:2px; text-align:right; }
+  .card .chg.up{ color:var(--up); } .card .chg.down{ color:var(--down); }
+
+  .why{ font-size:12px; color:var(--ink); line-height:1.55; margin-top:9px; background:var(--surface-2); border-radius:10px; padding:9px 11px; }
+  .caution{ font-size:11.5px; color:var(--warn); line-height:1.5; margin-top:8px; background:var(--warn-soft); border-radius:10px; padding:8px 11px; font-weight:500; }
+  .scandate{ font-size:10.5px; color:var(--ink-faint); margin-top:9px; }
+
+  .empty{ padding:22px 14px; text-align:center; color:var(--ink-faint); font-size:12.5px;
+    background:var(--surface); border:1px dashed var(--border); border-radius:12px; }
+
+  footer{ margin:30px 0 24px; font-size:11px; color:var(--ink-faint); line-height:1.6; padding-block-end:env(safe-area-inset-bottom, 0px); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>스윙콕핏</h1>
+    <div class="asof" id="asofLabel">불러오는 중…</div>
+  </div>
+  <div class="sub">모의투자 알고리즘이 조건에 맞춰 고른 추천 종목입니다. 투자 조언이 아니며, 실제 매매는 본인 판단과 책임하에 진행하세요.</div>
+</header>
+
+<section>
+  <div class="section-head">
+    <h2>오늘의 추천 종목</h2>
+    <span class="badge normal" id="signalsBadge">불러오는 중</span>
+  </div>
+  <div class="cards" id="signalCards">
+    <div class="empty">불러오는 중…</div>
+  </div>
+</section>
+
+<footer>
+  스윙 모멘텀 로직 기반 추천 · 재무 데이터는 DART 공시 기준 · 과거 조건 충족 신호이며 미래 수익을 보장하지 않습니다.
+</footer>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = "https://fbgtfxfzkuvdygryszdc.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZ3RmeGZ6a3V2ZHlncnlzemRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5OTM2MzksImV4cCI6MjEwNTU2OTYzOX0.kgF9dvrDs42qs2GwEK_KOjDpF_x9baMo1qRnvRpdwNw";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const fmtWon = n => "₩" + Math.round(n).toLocaleString("ko-KR");
+const fmtPct = n => (n > 0 ? "+" : "") + n.toFixed(2) + "%";
+
+function cardHTML(sig) {
+  const d = sig.details || {};
+  const chg = typeof d.chg_pct === "number" ? d.chg_pct : null;
+  const chgClass = chg == null ? "" : (chg >= 0 ? "up" : "down");
+  return `
+    <div class="card">
+      <div class="row1">
+        <div>
+          <span class="name">${sig.name}</span>
+          <span class="code mono">${sig.ticker}</span>
+        </div>
+        ${d.price != null ? `
+        <div>
+          <div class="price mono">${fmtWon(d.price)}</div>
+          ${chg != null ? `<div class="chg ${chgClass} mono">${fmtPct(chg)}</div>` : ""}
+        </div>` : ""}
+      </div>
+      ${sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
+      ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
+      <div class="scandate">${sig.scan_date} 스캔</div>
+    </div>
+  `;
+}
+
+async function load() {
+  const asofEl = document.getElementById("asofLabel");
+  const badgeEl = document.getElementById("signalsBadge");
+  const cardsEl = document.getElementById("signalCards");
+
+  const { data, error } = await supabase
+    .from("signals")
+    .select("scan_date,ticker,name,reason,score,details")
+    .order("scan_date", { ascending: false })
+    .order("score", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    cardsEl.innerHTML = `<div class="empty">불러오기 실패: ${error.message}</div>`;
+    badgeEl.textContent = "오류";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    cardsEl.innerHTML = `<div class="empty">아직 추천 종목이 없습니다. 다음 스캔을 기다려 주세요.</div>`;
+    asofEl.textContent = "-";
+    badgeEl.textContent = "대기중";
+    return;
+  }
+
+  const latestDate = data[0].scan_date;
+  const latest = data.filter(s => s.scan_date === latestDate);
+
+  asofEl.textContent = latestDate + " 기준";
+  badgeEl.textContent = latest.length + "건";
+  cardsEl.innerHTML = latest.map(cardHTML).join("");
+}
+
+load();
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
