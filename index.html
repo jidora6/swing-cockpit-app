@@ -61,6 +61,7 @@
 
   .badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:99px; letter-spacing:.02em; }
   .badge.normal{ background:var(--accent-soft); color:var(--accent); }
+  .badge.muted{ background:var(--surface-2); color:var(--ink-muted); }
 
   .cards{ display:flex; flex-direction:column; gap:10px; }
   .card{
@@ -159,17 +160,28 @@ function cardHTML(sig) {
   `;
 }
 
+const STATUS_LABEL = {
+  open: { text: "보유중", cls: "normal" },
+  closed: { text: "청산완료", cls: "muted" },
+  not_entered: { text: "미체결", cls: "muted" },
+};
+
 function pastRowHTML(sig) {
   const d = sig.details || {};
-  const ret = d.latest_return_pct;
+  const closed = d.position_status === "closed";
+  const ret = closed ? d.realized_return_pct : d.latest_return_pct;
   const retClass = ret == null ? "" : (ret >= 0 ? "up" : "down");
+  const st = STATUS_LABEL[d.position_status] || null;
+  const priceLabel = closed ? "청산가" : "현재가";
+  const priceVal = closed ? null : d.latest_price;
   return `
     <tr>
       <td>${sig.name}<br><span class="code mono">${sig.ticker}</span></td>
       <td class="mono">${sig.scan_date}</td>
       <td class="mono">${d.price != null ? fmtWon(d.price) : "-"}</td>
-      <td class="mono">${d.latest_price != null ? fmtWon(d.latest_price) : "-"}</td>
+      <td class="mono">${priceVal != null ? fmtWon(priceVal) : "-"}</td>
       <td class="ret ${retClass} mono">${ret != null ? fmtPct(ret) : "-"}</td>
+      <td>${st ? `<span class="badge ${st.cls}">${st.text}</span>` : "-"}</td>
     </tr>
   `;
 }
@@ -178,7 +190,7 @@ function pastTableHTML(rows) {
   return `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>종목</th><th>추천일</th><th>추천가</th><th>현재가</th><th>수익률</th></tr></thead>
+        <thead><tr><th>종목</th><th>추천일</th><th>추천가</th><th>현재가</th><th>수익률</th><th>상태</th></tr></thead>
         <tbody>${rows.map(pastRowHTML).join("")}</tbody>
       </table>
     </div>
