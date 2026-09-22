@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="card.css">
 <style>
   :root{
     --bg:#f5f2ec; --surface:#ffffff; --surface-2:#eeeadf;
@@ -156,13 +157,50 @@
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { fmtWon, fmtPct, buildSignalCard } from "./card.js";
 
 const SUPABASE_URL = "https://fbgtfxfzkuvdygryszdc.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZ3RmeGZ6a3V2ZHlncnlzemRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5OTM2MzksImV4cCI6MjEwNTU2OTYzOX0.kgF9dvrDs42qs2GwEK_KOjDpF_x9baMo1qRnvRpdwNw";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const fmtWon = n => (n < 0 ? "-" : "") + "₩" + Math.abs(Math.round(n)).toLocaleString("ko-KR");
-const fmtPct = n => (n > 0 ? "+" : "") + n.toFixed(2) + "%";
+// 종목 상세정보(스파크라인/재무/손절가 등)는 signals 테이블에서 티커로 조회 — 공개 테이블이라 로그인 여부와 무관하게 읽힘.
+const signalCache = new Map();
+async function fetchSignalByTicker(ticker) {
+  if (signalCache.has(ticker)) return signalCache.get(ticker);
+  const { data } = await supabase
+    .from("signals")
+    .select("scan_date,ticker,name,reason,score,details")
+    .eq("ticker", ticker)
+    .order("scan_date", { ascending: false })
+    .limit(1);
+  const sig = data && data.length ? data[0] : null;
+  signalCache.set(ticker, sig);
+  return sig;
+}
+
+function wireExpandableRows(container, tickers) {
+  container.querySelectorAll("tr.row-clickable").forEach(tr => {
+    tr.addEventListener("click", async () => {
+      const idx = tr.dataset.idx;
+      const detailRow = container.querySelector(`tr[data-detail-for="${idx}"]`);
+      const inner = detailRow.querySelector(".detail-inner");
+      const open = !detailRow.hidden;
+      if (open) { detailRow.hidden = true; return; }
+      if (!inner.dataset.built) {
+        inner.textContent = "불러오는 중…";
+        const sig = await fetchSignalByTicker(tickers[idx]);
+        inner.textContent = "";
+        if (sig) {
+          inner.appendChild(buildSignalCard(sig));
+        } else {
+          inner.innerHTML = `<div class="empty">이 종목의 추천 당시 정보를 찾을 수 없습니다.</div>`;
+        }
+        inner.dataset.built = "1";
+      }
+      detailRow.hidden = false;
+    });
+  });
+}
 
 const loginWrap = document.getElementById("loginWrap");
 const appWrap = document.getElementById("appWrap");
@@ -255,38 +293,44 @@ async function boot() {
   if (!positions || positions.length === 0) {
     holdingsWrap.innerHTML = `<div class="empty">보유 중인 종목이 없습니다.</div>`;
   } else {
-    const rows = positions.map(p => `
-      <tr>
+    const rows = positions.map((p, i) => `
+      <tr class="row-clickable" data-idx="${i}">
         <td>${p.name}<br><span class="mono" style="font-size:10.5px;color:var(--ink-faint)">${p.ticker}</span></td>
         <td class="mono">${p.quantity}</td>
         <td class="mono">${fmtWon(p.entry_price)}</td>
         <td class="mono">${p.entry_date}</td>
       </tr>
+      <tr class="detail-row" data-detail-for="${i}" hidden><td colspan="4"><div class="detail-inner"></div></td></tr>
     `).join("");
     holdingsWrap.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>종목</th><th>수량</th><th>진입가</th><th>진입일</th></tr></thead>
       <tbody>${rows}</tbody>
-    </table></div>`;
+    </table></div>
+    <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">행을 탭하면 추천 당시 상세정보를 볼 수 있습니다.</div>`;
+    wireExpandableRows(holdingsWrap, positions.map(p => p.ticker));
   }
 
   const tradesWrap = document.getElementById("tradesWrap");
   if (!trades || trades.length === 0) {
     tradesWrap.innerHTML = `<div class="empty">아직 청산된 매매가 없습니다.</div>`;
   } else {
-    const rows = trades.map(t => {
+    const rows = trades.map((t, i) => {
       const cls = t.pnl_pct > 0 ? "up" : t.pnl_pct < 0 ? "down" : "";
       return `
-      <tr>
+      <tr class="row-clickable" data-idx="${i}">
         <td>${t.name}<br><span class="mono" style="font-size:10.5px;color:var(--ink-faint)">${t.ticker}</span></td>
         <td class="mono">${t.exit_date}</td>
         <td class="mono">${t.exit_reason || "-"}</td>
         <td class="pnl ${cls} mono">${fmtPct(t.pnl_pct)}</td>
-      </tr>`;
+      </tr>
+      <tr class="detail-row" data-detail-for="${i}" hidden><td colspan="4"><div class="detail-inner"></div></td></tr>`;
     }).join("");
     tradesWrap.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>종목</th><th>청산일</th><th>사유</th><th>손익률</th></tr></thead>
       <tbody>${rows}</tbody>
-    </table></div>`;
+    </table></div>
+    <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">행을 탭하면 추천 당시 상세정보를 볼 수 있습니다.</div>`;
+    wireExpandableRows(tradesWrap, trades.map(t => t.ticker));
   }
 
   drawEquityChart((snaps || []).map(s => ({ date: s.snap_date, equity: s.equity })));

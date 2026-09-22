@@ -1,0 +1,50 @@
+/* 추천 종목 상세 카드 스타일 — index.html/owner.html 공용. card.js의 buildSignalCard()가 만드는 DOM용. */
+.cards{ display:flex; flex-direction:column; gap:10px; }
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:14px 15px; box-shadow:var(--shadow);
+}
+.card .row1{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.card .name{ font-size:15px; font-weight:700; }
+.card .code{ font-size:11px; color:var(--ink-faint); margin-left:6px; font-weight:400; }
+.card .price{ font-size:14px; font-weight:600; text-align:right; }
+.card .chg{ font-size:11px; margin-top:2px; text-align:right; }
+.card .chg.up{ color:var(--up); } .card .chg.down{ color:var(--down); }
+
+.why{ font-size:12px; color:var(--ink); line-height:1.55; margin-top:9px; background:var(--surface-2); border-radius:10px; padding:9px 11px; }
+.caution{ font-size:11.5px; color:var(--warn); line-height:1.5; margin-top:8px; background:var(--warn-soft); border-radius:10px; padding:8px 11px; font-weight:500; }
+.scandate{ font-size:10.5px; color:var(--ink-faint); margin-top:9px; }
+
+.spark{ margin-top:9px; }
+.spark svg{ display:block; width:100%; height:auto; }
+.spark-legend{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-faint); }
+
+.risk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
+.risk{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:7px 9px; }
+.risk .label{ font-size:9.5px; color:var(--ink-muted); }
+.risk .val{ font-size:12.5px; font-weight:600; margin-top:1px; }
+.risk .val.down{ color:var(--down); }
+
+.fin-toggle{ width:100%; margin-top:11px; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--ink); font-family:inherit; font-size:11.5px; font-weight:600;
+  display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+.fin-toggle .chev{ transition:transform .18s; color:var(--ink-faint); font-style:normal; }
+.fin-toggle[aria-expanded="true"] .chev{ transform:rotate(180deg); }
+.fin-body{ margin-top:9px; padding-top:10px; border-top:1px solid var(--border); }
+.fin-body[hidden]{ display:none; }
+.fin-body svg{ display:block; width:100%; height:auto; }
+.fin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
+.fin-tile{ background:var(--surface-2); border-radius:9px; padding:7px 9px; }
+.fin-tile .label{ font-size:9.5px; color:var(--ink-muted); }
+.fin-tile .val{ font-size:13.5px; font-weight:700; margin-top:1px; }
+.fin-tile .delta{ font-size:9.5px; margin-top:2px; font-weight:600; }
+.fin-tile .delta.up{ color:var(--up); } .fin-tile .delta.down{ color:var(--down); } .fin-tile .delta.flat{ color:var(--ink-faint); font-weight:500; }
+.fin-note{ font-size:9.5px; color:var(--ink-faint); margin-top:8px; }
+
+.track{ font-size:10.5px; color:var(--ink-faint); margin-top:11px; padding-top:9px; border-top:1px solid var(--border); line-height:1.5; }
+
+/* 표 안에서 종목명을 클릭 가능한 것처럼 보이게 */
+.row-clickable{ cursor:pointer; }
+.row-clickable:hover td{ background:var(--surface-2); }
+.detail-row td{ padding:0; }
+.detail-row .detail-inner{ padding:10px; }
