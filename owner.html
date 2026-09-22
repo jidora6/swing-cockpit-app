@@ -155,6 +155,7 @@
     </div>
     <div class="chart-card">
       <svg id="equityChart" viewBox="0 0 640 220" preserveAspectRatio="none" role="img" aria-label="자산 추이 차트"></svg>
+      <div class="chart-legend" id="chartLegend" style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint);margin-top:6px"></div>
     </div>
   </section>
 
@@ -238,7 +239,10 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
 function drawEquityChart(points) {
   const svg = document.getElementById("equityChart");
   svg.innerHTML = "";
-  if (points.length < 2) return;
+  if (points.length < 2) {
+    document.getElementById("chartLegend").textContent = "데이터가 더 쌓이면 추이 그래프가 표시됩니다.";
+    return;
+  }
   const svgns = "http://www.w3.org/2000/svg";
   const el = (tag, attrs) => { const e = document.createElementNS(svgns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
   const W = 640, H = 220, padL = 54, padR = 10, padT = 14, padB = 10;
@@ -266,6 +270,10 @@ function drawEquityChart(points) {
   const lt = el("text", { x: lastX, y: lastY - 9, "text-anchor": "end", "font-size": 11, fill: "var(--ink)", "font-family": "IBM Plex Mono, monospace", "font-weight": 600 });
   lt.textContent = fmtWon(vals[vals.length - 1]);
   svg.appendChild(lt);
+
+  const legend = document.getElementById("chartLegend");
+  const nDays = points.length;
+  legend.innerHTML = `<span>${points[0].date}</span><span>${nDays}일치 기록</span><span>${points[points.length - 1].date}</span>`;
 }
 
 async function boot() {
