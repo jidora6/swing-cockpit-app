@@ -276,14 +276,18 @@ async function boot() {
   }
 
   const latestSnap = snaps && snaps.length ? snaps[snaps.length - 1] : null;
-  const firstSnap = snaps && snaps.length ? snaps[0] : null;
   document.getElementById("asofLabel").textContent = latestSnap ? latestSnap.snap_date + " 기준" : "-";
   document.getElementById("sumEquity").textContent = latestSnap ? fmtWon(latestSnap.equity) : "-";
   document.getElementById("sumCount").textContent = (positions ? positions.length : 0) + "개";
 
-  if (latestSnap && firstSnap) {
-    const pnl = latestSnap.equity - firstSnap.equity;
-    const pnlPct = (pnl / firstSnap.equity) * 100;
+  // 누적 손익은 Supabase에 기록이 쌓이기 시작한 첫 날(snaps[0])이 아니라
+  // 실제 모의투자 계좌를 개설했을 때의 시드 자본 대비로 계산해야 한다.
+  // (snaps 테이블은 최근에야 기록을 시작해서, snaps[0] 기준으로 하면 "최근 며칠간 변동"이
+  //  "누적 손익"처럼 잘못 보이는 문제가 있었음 — 2026-09-22 발견/수정)
+  const SEED_CAPITAL = 10000000;
+  if (latestSnap) {
+    const pnl = latestSnap.equity - SEED_CAPITAL;
+    const pnlPct = (pnl / SEED_CAPITAL) * 100;
     const pnlEl = document.getElementById("sumPnl");
     pnlEl.textContent = fmtWon(pnl) + " (" + fmtPct(pnlPct) + ")";
     pnlEl.className = "value mono " + (pnl > 0 ? "up" : pnl < 0 ? "down" : "");
