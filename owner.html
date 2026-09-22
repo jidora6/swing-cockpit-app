@@ -185,7 +185,7 @@ function wireExpandableRows(container, tickers) {
       const detailRow = container.querySelector(`tr[data-detail-for="${idx}"]`);
       const inner = detailRow.querySelector(".detail-inner");
       const open = !detailRow.hidden;
-      if (open) { detailRow.hidden = true; return; }
+      if (open) { detailRow.hidden = true; tr.classList.remove("open"); return; }
       if (!inner.dataset.built) {
         inner.textContent = "불러오는 중…";
         const sig = await fetchSignalByTicker(tickers[idx]);
@@ -198,6 +198,7 @@ function wireExpandableRows(container, tickers) {
         inner.dataset.built = "1";
       }
       detailRow.hidden = false;
+      tr.classList.add("open");
     });
   });
 }

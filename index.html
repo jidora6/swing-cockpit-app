@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="card.css">
 <style>
   :root{
     --bg:#f5f2ec; --surface:#ffffff; --surface-2:#eeeadf;
@@ -200,12 +201,13 @@ function wireExpandableRows(container, rows) {
       const detailRow = container.querySelector(`tr[data-detail-for="${idx}"]`);
       const inner = detailRow.querySelector(".detail-inner");
       const open = !detailRow.hidden;
-      if (open) { detailRow.hidden = true; return; }
+      if (open) { detailRow.hidden = true; tr.classList.remove("open"); return; }
       if (!inner.dataset.built) {
         inner.appendChild(buildSignalCard(rows[idx]));
         inner.dataset.built = "1";
       }
       detailRow.hidden = false;
+      tr.classList.add("open");
     });
   });
 }
