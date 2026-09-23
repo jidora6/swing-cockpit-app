@@ -6,16 +6,65 @@ export const fmtPP = n => (n > 0 ? "+" : "") + n.toFixed(1) + "%p";
 const svgns = "http://www.w3.org/2000/svg";
 function el(tag, attrs) { const e = document.createElementNS(svgns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
 
-function drawSpark(svg, prices) {
-  const W = 380, H = 46, padX = 2, padY = 4;
+// 기간 길이에 맞춰 눈금 간격을 자동으로 고른다(길수록 월 단위, 짧을수록 주/일 단위) —
+// 다만 카드 그래프가 작아서(가로 ~300px) 눈금이 4~5개를 넘으면 라벨이 겹치므로 상한을 둔다.
+const TICK_UNIT_CANDIDATES_DAYS = [7, 14, 30, 90, 180, 365];
+const MAX_TICKS = 4;
+
+function pickTickUnitDays(spanDays) {
+  for (const days of TICK_UNIT_CANDIDATES_DAYS) {
+    if (spanDays / days <= MAX_TICKS) return days;
+  }
+  return TICK_UNIT_CANDIDATES_DAYS[TICK_UNIT_CANDIDATES_DAYS.length - 1];
+}
+
+function fmtTickLabel(dateStr, unitDays) {
+  const d = new Date(dateStr + "T00:00:00");
+  if (unitDays >= 180) return d.getFullYear() + "." + (d.getMonth() + 1);
+  if (unitDays >= 30) return (d.getMonth() + 1) + "월";
+  return (d.getMonth() + 1) + "/" + d.getDate();
+}
+
+function nearestDateIndex(dates, targetMs) {
+  let best = 0, bestDiff = Infinity;
+  dates.forEach((ds, i) => {
+    const diff = Math.abs(new Date(ds + "T00:00:00").getTime() - targetMs);
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  });
+  return best;
+}
+
+function drawSpark(svg, prices, dates) {
+  const hasTicks = Array.isArray(dates) && dates.length === prices.length && prices.length > 1;
+  const W = 380, H = hasTicks ? 58 : 46, padX = 2, padY = 4, padBottom = hasTicks ? 16 : padY;
   const min = Math.min(...prices), max = Math.max(...prices);
   const x = i => padX + (i / (prices.length - 1)) * (W - padX * 2);
-  const y = v => padY + (1 - ((v - min) / ((max - min) || 1))) * (H - padY * 2);
+  const y = v => padY + (1 - ((v - min) / ((max - min) || 1))) * (H - padY - padBottom);
   let d = "M" + x(0) + "," + y(prices[0]);
   prices.forEach((v, i) => { if (i > 0) d += " L" + x(i) + "," + y(v); });
   const up = prices[prices.length - 1] >= prices[0];
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.innerHTML = "";
   svg.appendChild(el("path", { d, fill: "none", stroke: up ? "var(--accent)" : "var(--down)", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+
+  if (!hasTicks) return;
+  const firstMs = new Date(dates[0] + "T00:00:00").getTime();
+  const lastMs = new Date(dates[dates.length - 1] + "T00:00:00").getTime();
+  const spanDays = (lastMs - firstMs) / 86400000;
+  const unitDays = pickTickUnitDays(spanDays || 1);
+  const axisY = H - padBottom;
+
+  const seen = new Set();
+  for (let t = firstMs; t <= lastMs; t += unitDays * 86400000) {
+    const idx = nearestDateIndex(dates, t);
+    if (seen.has(idx)) continue;
+    seen.add(idx);
+    const gx = x(idx);
+    svg.appendChild(el("line", { x1: gx, x2: gx, y1: padY, y2: axisY, stroke: "var(--border)", "stroke-width": 1, "stroke-dasharray": "2,2" }));
+    const lbl = el("text", { x: gx, y: axisY + 10, "text-anchor": "middle", "font-size": 7.5, fill: "var(--ink-faint)" });
+    lbl.textContent = fmtTickLabel(dates[idx], unitDays);
+    svg.appendChild(lbl);
+  }
 }
 
 function drawFinBars(svg, years, vals) {
@@ -108,7 +157,7 @@ export function buildSignalCard(sig, opts = {}) {
   `;
 
   if (d.spark && d.spark.length > 1) {
-    drawSpark(card.querySelector('[data-role="spark"]'), d.spark);
+    drawSpark(card.querySelector('[data-role="spark"]'), d.spark, d.spark_dates);
   }
   if (fin) {
     if (expandFin) {
