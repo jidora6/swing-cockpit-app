@@ -107,6 +107,9 @@
   .search-box button{ padding:10px 16px; border:none; border-radius:10px; background:var(--accent); color:var(--accent-ink);
     font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
 
+  .universe-search{ width:100%; margin-top:10px; padding:10px 12px; border:1px solid var(--border); border-radius:10px;
+    background:var(--surface); color:var(--ink); font-family:inherit; font-size:13px; }
+
   .pagination{ display:flex; align-items:center; justify-content:center; gap:4px; margin-top:12px; flex-wrap:wrap; }
   .page-btn{ min-width:28px; height:28px; padding:0 6px; border-radius:7px; border:1px solid var(--border);
     background:var(--surface); color:var(--ink-muted); font-family:inherit; font-size:12px; cursor:pointer; }
@@ -165,23 +168,12 @@
       <h2>유니버스 목록</h2>
       <span class="note">스캔 대상 전체 종목</span>
     </div>
-    <div class="tabbar" id="universeSortToggle" style="margin-top:0">
+    <input type="text" id="universeSearchInput" class="universe-search" placeholder="종목명 또는 코드로 찾기 (예: 삼성전자, 005930)">
+    <div class="tabbar" id="universeSortToggle">
       <button class="tab-btn active" data-sort="marcap">시가총액순</button>
       <button class="tab-btn" data-sort="score">스코어순</button>
     </div>
     <div id="universeWrap" style="margin-top:10px"><div class="empty">불러오는 중…</div></div>
-  </section>
-
-  <section>
-    <div class="section-head">
-      <h2>종목 검색</h2>
-      <span class="note">추천된 적 있는 종목만 검색됩니다</span>
-    </div>
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="종목명 또는 코드 입력 (예: 삼성전자, 005930)">
-      <button id="searchBtn">검색</button>
-    </div>
-    <div id="searchResult" style="margin-top:12px"></div>
   </section>
 </div>
 
@@ -376,16 +368,31 @@ async function loadUniverse() {
   renderUniversePage();
 }
 
+let universeQuery = "";
+
+function getFilteredUniverse() {
+  if (!universeQuery) return universeData;
+  const qLower = universeQuery.toLowerCase();
+  return universeData.filter(u =>
+    (u.name && u.name.toLowerCase().includes(qLower)) || (u.code && u.code.includes(universeQuery))
+  );
+}
+
 function renderUniversePage() {
   const wrap = document.getElementById("universeWrap");
+  const filtered = getFilteredUniverse();
   if (universeData.length === 0) {
     wrap.innerHTML = `<div class="empty">아직 유니버스 데이터가 없습니다.</div>`;
     return;
   }
-  const totalPages = Math.ceil(universeData.length / UNIVERSE_PAGE_SIZE);
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<div class="empty">"${universeQuery}"와 일치하는 종목이 없습니다.</div>`;
+    return;
+  }
+  const totalPages = Math.ceil(filtered.length / UNIVERSE_PAGE_SIZE);
   universePage = Math.min(Math.max(universePage, 1), totalPages);
   const start = (universePage - 1) * UNIVERSE_PAGE_SIZE;
-  const pageRows = universeData.slice(start, start + UNIVERSE_PAGE_SIZE);
+  const pageRows = filtered.slice(start, start + UNIVERSE_PAGE_SIZE);
 
   const rows = pageRows.map((u, i) => `
     <tr class="row-clickable" data-idx="${i}">
@@ -402,7 +409,7 @@ function renderUniversePage() {
     <tbody>${rows}</tbody>
   </table></div>
   <div class="pagination" id="universePagination"></div>
-  <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">총 ${universeData.length}종목 중 ${start + 1}-${start + pageRows.length}번째 · 행을 탭하면 상세정보를 볼 수 있습니다 · 스코어는 최근 스캔일 기준 백분위(높을수록 추천 조건에 가까움)</div>`;
+  <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">총 ${filtered.length}종목 중 ${start + 1}-${start + pageRows.length}번째 · 행을 탭하면 상세정보를 볼 수 있습니다 · 스코어는 최근 스캔일 기준 백분위(높을수록 추천 조건에 가까움)</div>`;
 
   wireExpandableUniverseRows(wrap, pageRows);
   renderPagination(document.getElementById("universePagination"), totalPages, universePage, (p) => {
@@ -410,6 +417,12 @@ function renderUniversePage() {
     renderUniversePage();
   });
 }
+
+document.getElementById("universeSearchInput").addEventListener("input", (e) => {
+  universeQuery = e.target.value.trim();
+  universePage = 1;
+  renderUniversePage();
+});
 
 function universeRowToSig(u) {
   if (!u.details) return null;
@@ -524,8 +537,8 @@ async function runSearch() {
   resultEl.appendChild(cards);
 }
 
-document.getElementById("searchBtn").addEventListener("click", runSearch);
-document.getElementById("searchInput").addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(); });
+// runSearch()는 signals(추천된 적 있는 종목)만 검색 대상이라 활용도가 낮아 화면에서 뺐다.
+// 함수/HTML(.search-box) 자체는 나중에 다시 쓸 수도 있어 남겨둠 — 현재는 아무 것도 이 함수를 호출하지 않는다.
 
 // ============================================================
 // 오너 전용 영역: 로그인 성공 시에만 로드
