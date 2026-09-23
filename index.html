@@ -387,13 +387,14 @@ function renderUniversePage() {
   const start = (universePage - 1) * UNIVERSE_PAGE_SIZE;
   const pageRows = universeData.slice(start, start + UNIVERSE_PAGE_SIZE);
 
-  const rows = pageRows.map(u => `
-    <tr>
+  const rows = pageRows.map((u, i) => `
+    <tr class="row-clickable" data-idx="${i}">
       <td>${u.name}<br><span class="code mono">${u.code}</span></td>
       <td class="mono">${u.market || "-"}</td>
       <td class="mono">${fmtMarcap(u.marcap)}</td>
       <td class="mono">${u.score != null ? (u.score * 100).toFixed(1) + "%ile" : "-"}</td>
     </tr>
+    <tr class="detail-row" data-detail-for="${i}" hidden><td colspan="4"><div class="detail-inner"></div></td></tr>
   `).join("");
 
   wrap.innerHTML = `<div class="table-wrap"><table>
@@ -401,11 +402,39 @@ function renderUniversePage() {
     <tbody>${rows}</tbody>
   </table></div>
   <div class="pagination" id="universePagination"></div>
-  <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">총 ${universeData.length}종목 중 ${start + 1}-${start + pageRows.length}번째 · 스코어는 최근 스캔일 기준 백분위(높을수록 추천 조건에 가까움)</div>`;
+  <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">총 ${universeData.length}종목 중 ${start + 1}-${start + pageRows.length}번째 · 행을 탭하면 상세정보를 볼 수 있습니다 · 스코어는 최근 스캔일 기준 백분위(높을수록 추천 조건에 가까움)</div>`;
 
+  wireExpandableUniverseRows(wrap, pageRows);
   renderPagination(document.getElementById("universePagination"), totalPages, universePage, (p) => {
     universePage = p;
     renderUniversePage();
+  });
+}
+
+function wireExpandableUniverseRows(container, pageRows) {
+  container.querySelectorAll("tr.row-clickable").forEach(tr => {
+    tr.addEventListener("click", async () => {
+      const idx = tr.dataset.idx;
+      const detailRow = container.querySelector(`tr[data-detail-for="${idx}"]`);
+      const inner = detailRow.querySelector(".detail-inner");
+      const open = !detailRow.hidden;
+      if (open) { detailRow.hidden = true; tr.classList.remove("open"); return; }
+      if (!inner.dataset.built) {
+        inner.textContent = "불러오는 중…";
+        const u = pageRows[idx];
+        const sig = await fetchSignalByTicker(u.code);
+        inner.textContent = "";
+        if (sig) {
+          inner.appendChild(buildSignalCard(sig, { expandFin: true }));
+        } else {
+          const scoreTxt = u.score != null ? (u.score * 100).toFixed(1) + "%ile" : "정보 없음";
+          inner.innerHTML = `<div class="empty">이 종목은 아직 한 번도 추천 조건을 충족한 적이 없어 추천 사유·재무 스냅샷 같은 상세 정보가 없습니다. (현재 스코어: ${scoreTxt})</div>`;
+        }
+        inner.dataset.built = "1";
+      }
+      detailRow.hidden = false;
+      tr.classList.add("open");
+    });
   });
 }
 
