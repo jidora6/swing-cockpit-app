@@ -363,7 +363,7 @@ async function loadUniverse() {
   wrap.innerHTML = `<div class="empty">불러오는 중…</div>`;
   const { data, error } = await supabase
     .from("universe")
-    .select("code,name,market,marcap,score")
+    .select("code,name,market,marcap,score,score_asof,details")
     .order(universeSort, { ascending: false, nullsFirst: false })
     .limit(700);
 
@@ -411,6 +411,14 @@ function renderUniversePage() {
   });
 }
 
+function universeRowToSig(u) {
+  if (!u.details) return null;
+  return {
+    name: u.details.name || u.name, ticker: u.details.code || u.code,
+    reason: u.details.reason, scan_date: u.score_asof, details: u.details,
+  };
+}
+
 function wireExpandableUniverseRows(container, pageRows) {
   container.querySelectorAll("tr.row-clickable").forEach(tr => {
     tr.addEventListener("click", async () => {
@@ -422,13 +430,15 @@ function wireExpandableUniverseRows(container, pageRows) {
       if (!inner.dataset.built) {
         inner.textContent = "불러오는 중…";
         const u = pageRows[idx];
-        const sig = await fetchSignalByTicker(u.code);
+        // universe.details에 이미 분석 정보(추천사유·재무스냅샷 등)가 있으면 바로 쓰고,
+        // 아직 백필 전이라 없으면(과도기) signals 테이블에서 실제 추천 이력을 한 번 더 찾아본다.
+        const sig = universeRowToSig(u) || await fetchSignalByTicker(u.code);
         inner.textContent = "";
         if (sig) {
           inner.appendChild(buildSignalCard(sig, { expandFin: true }));
         } else {
           const scoreTxt = u.score != null ? (u.score * 100).toFixed(1) + "%ile" : "정보 없음";
-          inner.innerHTML = `<div class="empty">이 종목은 아직 한 번도 추천 조건을 충족한 적이 없어 추천 사유·재무 스냅샷 같은 상세 정보가 없습니다. (현재 스코어: ${scoreTxt})</div>`;
+          inner.innerHTML = `<div class="empty">아직 이 종목의 분석 정보가 준비되지 않았습니다. (현재 스코어: ${scoreTxt}) 재무 스냅샷은 매일 일부씩 갱신되니 며칠 내로 채워집니다.</div>`;
         }
         inner.dataset.built = "1";
       }
