@@ -155,6 +155,18 @@
 
   <section>
     <div class="section-head">
+      <h2>유니버스 목록</h2>
+      <span class="note">스캔 대상 전체 종목</span>
+    </div>
+    <div class="tabbar" id="universeSortToggle" style="margin-top:0">
+      <button class="tab-btn active" data-sort="marcap">시가총액순</button>
+      <button class="tab-btn" data-sort="score">스코어순</button>
+    </div>
+    <div id="universeWrap" style="margin-top:10px"><div class="empty">불러오는 중…</div></div>
+  </section>
+
+  <section>
+    <div class="section-head">
       <h2>종목 검색</h2>
       <span class="note">추천된 적 있는 종목만 검색됩니다</span>
     </div>
@@ -328,6 +340,54 @@ async function loadPublic() {
   }
 }
 
+function fmtMarcap(v) {
+  if (v == null) return "-";
+  if (v >= 1e12) return (v / 1e12).toFixed(1) + "조";
+  return Math.round(v / 1e8).toLocaleString("ko-KR") + "억";
+}
+
+let universeSort = "marcap";
+async function loadUniverse() {
+  const wrap = document.getElementById("universeWrap");
+  wrap.innerHTML = `<div class="empty">불러오는 중…</div>`;
+  const { data, error } = await supabase
+    .from("universe")
+    .select("code,name,market,marcap,score")
+    .order(universeSort, { ascending: false, nullsFirst: false })
+    .limit(700);
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty">불러오기 실패: ${error.message}</div>`;
+    return;
+  }
+  if (!data || data.length === 0) {
+    wrap.innerHTML = `<div class="empty">아직 유니버스 데이터가 없습니다.</div>`;
+    return;
+  }
+  const rows = data.map(u => `
+    <tr>
+      <td>${u.name}<br><span class="code mono">${u.code}</span></td>
+      <td class="mono">${u.market || "-"}</td>
+      <td class="mono">${fmtMarcap(u.marcap)}</td>
+      <td class="mono">${u.score != null ? (u.score * 100).toFixed(1) + "%ile" : "-"}</td>
+    </tr>
+  `).join("");
+  wrap.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>종목</th><th>시장</th><th>시가총액</th><th>스코어</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+  <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">총 ${data.length}종목 · 스코어는 최근 스캔일 기준 백분위(높을수록 추천 조건에 가까움)</div>`;
+}
+
+document.querySelectorAll("#universeSortToggle .tab-btn").forEach(b => {
+  b.addEventListener("click", () => {
+    universeSort = b.dataset.sort;
+    document.querySelectorAll("#universeSortToggle .tab-btn").forEach(x => x.classList.toggle("active", x === b));
+    loadUniverse();
+  });
+});
+loadUniverse();
+
 async function runSearch() {
   const q = document.getElementById("searchInput").value.trim();
   const resultEl = document.getElementById("searchResult");
@@ -449,10 +509,10 @@ function drawEquityChart(points) {
 function switchTab(tab) {
   document.getElementById("ownerView").hidden = tab !== "owner";
   document.getElementById("publicView").hidden = tab !== "public";
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll("#tabbar .tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
 }
 
-document.querySelectorAll(".tab-btn").forEach(b => {
+document.querySelectorAll("#tabbar .tab-btn").forEach(b => {
   b.addEventListener("click", () => switchTab(b.dataset.tab));
 });
 
