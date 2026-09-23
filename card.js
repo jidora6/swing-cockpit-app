@@ -94,7 +94,7 @@ export function buildSignalCard(sig, opts = {}) {
         ${chg != null ? `<div class="chg ${chgClass} mono">${fmtPct(chg)}</div>` : ""}
       </div>` : ""}
     </div>
-    ${d.spark && d.spark.length > 1 ? `<div class="spark"><svg data-role="spark"></svg><div class="spark-legend"><span>최근 ${d.spark.length}거래일</span>${d.proximity != null ? `<span>52주고가대비 ${(d.proximity * 100).toFixed(0)}%</span>` : ""}</div></div>` : ""}
+    ${d.spark && d.spark.length > 1 ? `<div class="spark"><svg data-role="spark"></svg><div class="spark-legend"><span>${d.spark_start && sig.scan_date ? `${d.spark_start} ~ ${sig.scan_date}` : `최근 ${d.spark.length}거래일`}</span>${d.proximity != null ? `<span>52주고가대비 ${(d.proximity * 100).toFixed(0)}%</span>` : ""}</div></div>` : ""}
     ${showReason && sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
     ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
     ${d.stop_price != null || d.max_loss_pct != null ? `

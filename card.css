@@ -58,7 +58,7 @@
 }
 .row-clickable.open td:first-child::after{ content:"접기 ⌃"; }
 
-.detail-row td{ padding:0; background:var(--bg); }
+.detail-row td{ padding:0; background:var(--bg); white-space:normal; }
 .detail-row .detail-inner{ padding:14px 10px; animation:detail-in .18s ease-out; }
 .detail-row .card{
   border-color:var(--accent);
