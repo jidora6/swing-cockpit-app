@@ -656,17 +656,32 @@ async function bootOwner() {
   if (!positions || positions.length === 0) {
     holdingsWrap.innerHTML = `<div class="empty">보유 중인 종목이 없습니다.</div>`;
   } else {
-    const rows = positions.map((p, i) => `
+    // 현재가치/수익 계산용 현재가 — universe 테이블(매일 갱신되는 종가)에서 보유 종목만 조회
+    const holdingTickers = positions.map(p => p.ticker);
+    const { data: priceRows } = await supabase.from("universe").select("code,details").in("code", holdingTickers);
+    const priceByTicker = {};
+    (priceRows || []).forEach(u => { if (u.details && u.details.price != null) priceByTicker[u.code] = u.details.price; });
+
+    const rows = positions.map((p, i) => {
+      const curPrice = priceByTicker[p.ticker];
+      const curValue = curPrice != null ? curPrice * p.quantity : null;
+      const pnl = curPrice != null ? (curPrice - p.entry_price) * p.quantity : null;
+      const pnlPct = curPrice != null ? (curPrice / p.entry_price - 1) * 100 : null;
+      const pnlClass = pnl == null ? "" : (pnl >= 0 ? "up" : "down");
+      return `
       <tr class="row-clickable" data-idx="${i}">
         <td>${p.name}<br><span class="mono" style="font-size:10.5px;color:var(--ink-faint)">${p.ticker}</span></td>
         <td class="mono">${p.quantity}</td>
         <td class="mono">${fmtWon(p.entry_price)}</td>
         <td class="mono">${p.entry_date}</td>
+        <td class="mono">${curValue != null ? fmtWon(curValue) : "-"}</td>
+        <td class="pnl ${pnlClass} mono">${pnl != null ? fmtWon(pnl) + " (" + fmtPct(pnlPct) + ")" : "-"}</td>
       </tr>
-      <tr class="detail-row" data-detail-for="${i}" hidden><td colspan="4"><div class="detail-inner"></div></td></tr>
-    `).join("");
+      <tr class="detail-row" data-detail-for="${i}" hidden><td colspan="6"><div class="detail-inner"></div></td></tr>
+    `;
+    }).join("");
     holdingsWrap.innerHTML = `<div class="table-wrap"><table>
-      <thead><tr><th>종목</th><th>수량</th><th>진입가</th><th>진입일</th></tr></thead>
+      <thead><tr><th>종목</th><th>수량</th><th>진입가</th><th>진입일</th><th>현재 가치</th><th>수익</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
     <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">행을 탭하면 추천 당시 상세정보를 볼 수 있습니다.</div>`;
