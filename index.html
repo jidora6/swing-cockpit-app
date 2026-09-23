@@ -37,7 +37,6 @@
     --warn:#e3ad55; --warn-soft:#3a2f18; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -10px rgba(0,0,0,.5);
   }
   *{box-sizing:border-box}
-  [hidden]{ display:none !important; }
   body{
     background:var(--bg); color:var(--ink); margin:0;
     font-family:"IBM Plex Sans KR","Noto Sans KR",system-ui,sans-serif;
@@ -51,26 +50,10 @@
     background:var(--bg); padding-block:18px 10px; z-index:5;
     border-bottom:1px solid var(--border);
   }
-  .brand{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .brand{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
   .brand h1{ font-size:19px; font-weight:700; letter-spacing:-.01em; }
-  .header-link{ font-size:11.5px; color:var(--ink-muted); background:none; border:1px solid var(--border);
-    border-radius:999px; padding:5px 12px; cursor:pointer; font-family:inherit; white-space:nowrap; }
-  .header-link:hover{ background:var(--surface-2); }
-  .asof{ font-size:11px; color:var(--ink-faint); margin-top:6px; }
-  .sub{ font-size:12px; color:var(--ink-muted); margin-top:4px; }
-
-  #loginForm{ max-width:280px; margin-top:12px; }
-  #loginForm input{ width:100%; padding:9px 11px; margin-bottom:8px; border:1px solid var(--border); border-radius:8px;
-    background:var(--surface); color:var(--ink); font-family:inherit; font-size:13px; }
-  #loginForm button{ width:100%; padding:10px; border:none; border-radius:8px; background:var(--accent); color:var(--accent-ink);
-    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; }
-  #loginForm button:disabled{ opacity:.6; cursor:default; }
-  #loginErr{ color:var(--up); font-size:11.5px; margin-top:6px; min-height:14px; }
-
-  .tabbar{ display:flex; gap:6px; margin-top:14px; }
-  .tab-btn{ flex:1; padding:9px; border-radius:10px; border:1px solid var(--border); background:var(--surface);
-    color:var(--ink-muted); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
-  .tab-btn.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .brand .asof{ font-size:11px; color:var(--ink-faint); }
+  .sub{ font-size:12px; color:var(--ink-muted); margin-top:6px; }
 
   .summary{
     margin-top:12px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
@@ -101,13 +84,19 @@
   .chart-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:var(--shadow); }
   .chart-card svg{ display:block; width:100%; height:auto; overflow:visible; }
 
-  .search-box{ display:flex; gap:8px; }
-  .search-box input{ flex:1; padding:10px 12px; border:1px solid var(--border); border-radius:10px;
-    background:var(--surface); color:var(--ink); font-family:inherit; font-size:13px; }
-  .search-box button{ padding:10px 16px; border:none; border-radius:10px; background:var(--accent); color:var(--accent-ink);
-    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
-
   footer{ margin:30px 0 24px; font-size:11px; color:var(--ink-faint); line-height:1.6; padding-block-end:env(safe-area-inset-bottom, 0px); }
+
+  /* 오너 로그인 (footer 안, 평소엔 눈에 안 띄게) */
+  #ownerAuth{ margin-top:18px; padding-top:14px; border-top:1px solid var(--border); }
+  #ownerLoginToggle{ font-size:11px; color:var(--ink-faint); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; font-family:inherit; }
+  #loginForm{ max-width:280px; margin-top:10px; }
+  #loginForm input{ width:100%; padding:9px 11px; margin-bottom:8px; border:1px solid var(--border); border-radius:8px;
+    background:var(--surface); color:var(--ink); font-family:inherit; font-size:13px; }
+  #loginForm button{ width:100%; padding:10px; border:none; border-radius:8px; background:var(--accent); color:var(--accent-ink);
+    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  #loginForm button:disabled{ opacity:.6; cursor:default; }
+  #loginErr{ color:var(--up); font-size:11.5px; margin-top:6px; min-height:14px; }
+  #logoutBtn{ font-size:11px; color:var(--ink-faint); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; font-family:inherit; }
 </style>
 </head>
 <body>
@@ -115,59 +104,10 @@
 <header class="top">
   <div class="brand">
     <h1>스윙콕핏</h1>
-    <button id="ownerLoginToggle" class="header-link">오너 로그인</button>
-    <button id="logoutBtn" class="header-link" hidden>로그아웃</button>
+    <div class="asof" id="asofLabel">불러오는 중…</div>
   </div>
-  <div class="asof" id="asofLabel">불러오는 중…</div>
   <div class="sub">모의투자 알고리즘이 조건에 맞춰 고른 추천 종목입니다. 투자 조언이 아니며, 실제 매매는 본인 판단과 책임하에 진행하세요.</div>
-
-  <div id="loginForm" hidden>
-    <input type="email" id="email" placeholder="이메일" autocomplete="username">
-    <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
-    <button id="loginBtn">로그인</button>
-    <div id="loginErr"></div>
-  </div>
-
-  <div class="tabbar" id="tabbar" hidden>
-    <button class="tab-btn active" data-tab="owner">내 계좌</button>
-    <button class="tab-btn" data-tab="public">추천 종목</button>
-  </div>
-</header>
-
-<div id="publicView">
-  <section>
-    <div class="section-head">
-      <h2>오늘의 추천 종목</h2>
-      <span class="badge normal" id="signalsBadge">불러오는 중</span>
-    </div>
-    <div class="cards" id="signalCards">
-      <div class="empty">불러오는 중…</div>
-    </div>
-  </section>
-
-  <section>
-    <div class="section-head">
-      <h2>지난 추천 성과</h2>
-      <span class="note">추천가 대비 현재가 기준 · 손절가 이탈 종목은 제외</span>
-    </div>
-    <div id="pastWrap"><div class="empty">불러오는 중…</div></div>
-  </section>
-
-  <section>
-    <div class="section-head">
-      <h2>종목 검색</h2>
-      <span class="note">추천된 적 있는 종목만 검색됩니다</span>
-    </div>
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="종목명 또는 코드 입력 (예: 삼성전자, 005930)">
-      <button id="searchBtn">검색</button>
-    </div>
-    <div id="searchResult" style="margin-top:12px"></div>
-  </section>
-</div>
-
-<div id="ownerView" hidden>
-  <div class="summary" id="ownerSummary">
+  <div class="summary" id="ownerSummary" hidden>
     <div class="cell">
       <div class="label">총자산</div>
       <div class="value mono" id="sumEquity">–</div>
@@ -181,7 +121,27 @@
       <div class="value mono" id="sumCount">–</div>
     </div>
   </div>
+</header>
 
+<section>
+  <div class="section-head">
+    <h2>오늘의 추천 종목</h2>
+    <span class="badge normal" id="signalsBadge">불러오는 중</span>
+  </div>
+  <div class="cards" id="signalCards">
+    <div class="empty">불러오는 중…</div>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <h2>지난 추천 성과</h2>
+    <span class="note">추천가 대비 현재가 기준</span>
+  </div>
+  <div id="pastWrap"><div class="empty">불러오는 중…</div></div>
+</section>
+
+<div id="ownerOnlySections" hidden>
   <section>
     <div class="section-head">
       <h2>보유 종목</h2>
@@ -210,6 +170,17 @@
 
 <footer>
   스윙 모멘텀 로직 기반 추천 · 재무 데이터는 DART 공시 기준 · 과거 조건 충족 신호이며 미래 수익을 보장하지 않습니다.
+
+  <div id="ownerAuth">
+    <button id="ownerLoginToggle">오너 로그인</button>
+    <div id="loginForm" hidden>
+      <input type="email" id="email" placeholder="이메일" autocomplete="username">
+      <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
+      <button id="loginBtn">로그인</button>
+      <div id="loginErr"></div>
+    </div>
+    <button id="logoutBtn" hidden>로그아웃</button>
+  </div>
 </footer>
 
 <script type="module">
@@ -219,10 +190,9 @@ import { fmtWon, fmtPct, buildSignalCard } from "./card.js?v=5";
 const SUPABASE_URL = "https://fbgtfxfzkuvdygryszdc.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZ3RmeGZ6a3V2ZHlncnlzemRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5OTM2MzksImV4cCI6MjEwNTU2OTYzOX0.kgF9dvrDs42qs2GwEK_KOjDpF_x9baMo1qRnvRpdwNw";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const SEED_CAPITAL = 10000000;
 
 // ============================================================
-// 공개 영역: 오늘의 추천 종목 / 지난 추천 성과 / 종목 검색 — 로그인 여부와 무관하게 항상 로드
+// 공개 영역: 오늘의 추천 종목 / 지난 추천 성과 — 로그인 여부와 무관하게 항상 로드
 // ============================================================
 
 // 보유중/청산완료 같은 상태는 육지완 님 개인 계좌 정보라 공개 뷰어에는 절대 표시하지 않는다.
@@ -303,13 +273,7 @@ async function loadPublic() {
   }
 
   const latest = data.filter(s => s.scan_date === todayStr);
-  // 지난 추천 성과: 손절가(stop_price)를 이탈해 "탈락"한 종목은 더 이상 유효한 기회가 아니므로 목록에서 제외한다.
-  const past = data.filter(s => {
-    if (s.scan_date === todayStr) return false;
-    const d = s.details || {};
-    if (d.stop_price == null || d.latest_price == null) return true;
-    return d.latest_price > d.stop_price;
-  });
+  const past = data.filter(s => s.scan_date !== todayStr);
 
   if (latest.length === 0) {
     cardsEl.innerHTML = `<div class="empty">오늘은 조건에 맞는 신규 추천이 없습니다.</div>`;
@@ -327,42 +291,6 @@ async function loadPublic() {
     pastEl.innerHTML = `<div class="empty">아직 지난 추천 기록이 없습니다.</div>`;
   }
 }
-
-async function runSearch() {
-  const q = document.getElementById("searchInput").value.trim();
-  const resultEl = document.getElementById("searchResult");
-  if (!q) { resultEl.innerHTML = ""; return; }
-
-  resultEl.innerHTML = `<div class="empty">검색 중…</div>`;
-  const { data, error } = await supabase
-    .from("signals")
-    .select("scan_date,ticker,name,reason,score,details")
-    .or(`ticker.ilike.%${q}%,name.ilike.%${q}%`)
-    .order("scan_date", { ascending: false })
-    .limit(50);
-
-  if (error) {
-    resultEl.innerHTML = `<div class="empty">검색 실패: ${error.message}</div>`;
-    return;
-  }
-  if (!data || data.length === 0) {
-    resultEl.innerHTML = `<div class="empty">"${q}"에 대한 추천 이력이 없습니다. 이 시스템은 한 번이라도 조건에 맞아 추천됐던 종목만 검색할 수 있습니다.</div>`;
-    return;
-  }
-
-  // 같은 종목이 여러 번 추천됐으면 가장 최근 것만 보여준다.
-  const byTicker = new Map();
-  data.forEach(sig => { if (!byTicker.has(sig.ticker)) byTicker.set(sig.ticker, sig); });
-
-  resultEl.innerHTML = "";
-  const cards = document.createElement("div");
-  cards.className = "cards";
-  byTicker.forEach(sig => cards.appendChild(buildSignalCard(sig, { expandFin: true })));
-  resultEl.appendChild(cards);
-}
-
-document.getElementById("searchBtn").addEventListener("click", runSearch);
-document.getElementById("searchInput").addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(); });
 
 // ============================================================
 // 오너 전용 영역: 로그인 성공 시에만 로드
@@ -446,28 +374,17 @@ function drawEquityChart(points) {
   legend.innerHTML = `<span>${points[0].date}</span><span>${points.length}일치 기록</span><span>${points[points.length - 1].date}</span>`;
 }
 
-function switchTab(tab) {
-  document.getElementById("ownerView").hidden = tab !== "owner";
-  document.getElementById("publicView").hidden = tab !== "public";
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-}
-
-document.querySelectorAll(".tab-btn").forEach(b => {
-  b.addEventListener("click", () => switchTab(b.dataset.tab));
-});
-
 async function bootOwner() {
-  document.getElementById("tabbar").hidden = false;
+  document.getElementById("ownerSummary").hidden = false;
+  document.getElementById("ownerOnlySections").hidden = false;
   document.getElementById("ownerLoginToggle").hidden = true;
   document.getElementById("loginForm").hidden = true;
   document.getElementById("logoutBtn").hidden = false;
-  switchTab("owner");
 
-  const [{ data: positions, error: posErr }, { data: trades, error: tradeErr }, { data: snaps, error: snapErr }, { data: earliestSignal }] = await Promise.all([
+  const [{ data: positions, error: posErr }, { data: trades, error: tradeErr }, { data: snaps, error: snapErr }] = await Promise.all([
     supabase.from("positions").select("*").eq("status", "open").order("entry_date", { ascending: false }),
     supabase.from("trades").select("*").order("exit_date", { ascending: false }).limit(20),
     supabase.from("equity_snapshots").select("*").order("snap_date", { ascending: true }).limit(200),
-    supabase.from("signals").select("scan_date").order("scan_date", { ascending: true }).limit(1),
   ]);
 
   if (posErr || tradeErr || snapErr) {
@@ -481,6 +398,7 @@ async function bootOwner() {
 
   // 누적 손익은 실제 시드자본(1000만원) 대비로 계산 — snaps[0] 기준으로 하면 최근 며칠 변동이
   // "누적 손익"처럼 잘못 보이는 문제가 있었음(2026-09-22 발견/수정).
+  const SEED_CAPITAL = 10000000;
   if (latestSnap) {
     const pnl = latestSnap.equity - SEED_CAPITAL;
     const pnlPct = (pnl / SEED_CAPITAL) * 100;
@@ -533,15 +451,7 @@ async function bootOwner() {
     wireExpandableOwnerRows(tradesWrap, trades.map(t => t.ticker));
   }
 
-  // 자산 스냅샷 기록은 2026-09-21부터 시작됐지만 실제로는 2026-09-16 첫 스캔(=시드자본 그대로,
-  // 아직 포지션 진입 전) 시점부터 운영이 시작됐다. 그 사이(9/17~20)는 실제 일별 기록이 없어
-  // 만들어낼 수 없으므로, 확실히 아는 시작 시점(시드자본)만 앵커로 추가하고 直선으로 이어 보여준다.
-  let chartPoints = (snaps || []).map(s => ({ date: s.snap_date, equity: s.equity }));
-  const seedDate = earliestSignal && earliestSignal.length ? earliestSignal[0].scan_date : null;
-  if (seedDate && (chartPoints.length === 0 || chartPoints[0].date > seedDate)) {
-    chartPoints.unshift({ date: seedDate, equity: SEED_CAPITAL });
-  }
-  drawEquityChart(chartPoints);
+  drawEquityChart((snaps || []).map(s => ({ date: s.snap_date, equity: s.equity })));
 }
 
 // ============================================================
