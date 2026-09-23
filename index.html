@@ -16,7 +16,7 @@
   :root{
     --bg:#eef6f1; --surface:#ffffff; --surface-2:#dfeee7;
     --border:#cfe4da; --ink:#16241d; --ink-muted:#5b6b62; --ink-faint:#93a89b;
-    --accent:#00a878; --accent-ink:#ffffff; --accent-soft:#cdf2e2;
+    --accent:#6c5ce8; --accent-ink:#ffffff; --accent-soft:#e6e1fb;
     --up:#e6483d; --up-soft:#fbdcd9; --down:#2f6fed; --down-soft:#dbe6fc;
     --warn:#e08e00; --warn-soft:#fbe8c6; --shadow: 0 1px 2px rgba(22,36,29,.06), 0 6px 20px -8px rgba(22,36,29,.14);
   }
@@ -24,7 +24,7 @@
     :root:not([data-theme="light"]){
       --bg:#11201a; --surface:#182720; --surface-2:#1e352b;
       --border:#2c4a3c; --ink:#eaf3ee; --ink-muted:#a9c2b6; --ink-faint:#72897c;
-      --accent:#22e0ab; --accent-ink:#07211a; --accent-soft:#1c3f33;
+      --accent:#a78bfa; --accent-ink:#1b1533; --accent-soft:#2e2555;
       --up:#ff6b60; --up-soft:#3d211d; --down:#5b93ff; --down-soft:#1c2c4a;
       --warn:#ffb020; --warn-soft:#3a2a10; --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 26px -10px rgba(0,0,0,.55);
     }
@@ -32,7 +32,7 @@
   :root[data-theme="dark"]{
     --bg:#11201a; --surface:#182720; --surface-2:#1e352b;
     --border:#2c4a3c; --ink:#eaf3ee; --ink-muted:#a9c2b6; --ink-faint:#72897c;
-    --accent:#22e0ab; --accent-ink:#07211a; --accent-soft:#1c3f33;
+    --accent:#a78bfa; --accent-ink:#1b1533; --accent-soft:#2e2555;
     --up:#ff6b60; --up-soft:#3d211d; --down:#5b93ff; --down-soft:#1c2c4a;
     --warn:#ffb020; --warn-soft:#3a2a10; --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 26px -10px rgba(0,0,0,.55);
   }
@@ -106,6 +106,13 @@
     background:var(--surface); color:var(--ink); font-family:inherit; font-size:13px; }
   .search-box button{ padding:10px 16px; border:none; border-radius:10px; background:var(--accent); color:var(--accent-ink);
     font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+
+  .pagination{ display:flex; align-items:center; justify-content:center; gap:4px; margin-top:12px; flex-wrap:wrap; }
+  .page-btn{ min-width:28px; height:28px; padding:0 6px; border-radius:7px; border:1px solid var(--border);
+    background:var(--surface); color:var(--ink-muted); font-family:inherit; font-size:12px; cursor:pointer; }
+  .page-btn.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; }
+  .page-btn:disabled{ opacity:.35; cursor:default; }
+  .page-ellipsis{ color:var(--ink-faint); font-size:12px; padding:0 2px; }
 
   footer{ margin:30px 0 24px; font-size:11px; color:var(--ink-faint); line-height:1.6; padding-block-end:env(safe-area-inset-bottom, 0px); }
 </style>
@@ -346,7 +353,11 @@ function fmtMarcap(v) {
   return Math.round(v / 1e8).toLocaleString("ko-KR") + "억";
 }
 
+const UNIVERSE_PAGE_SIZE = 10;
 let universeSort = "marcap";
+let universeData = [];
+let universePage = 1;
+
 async function loadUniverse() {
   const wrap = document.getElementById("universeWrap");
   wrap.innerHTML = `<div class="empty">불러오는 중…</div>`;
@@ -360,11 +371,23 @@ async function loadUniverse() {
     wrap.innerHTML = `<div class="empty">불러오기 실패: ${error.message}</div>`;
     return;
   }
-  if (!data || data.length === 0) {
+  universeData = data || [];
+  universePage = 1;
+  renderUniversePage();
+}
+
+function renderUniversePage() {
+  const wrap = document.getElementById("universeWrap");
+  if (universeData.length === 0) {
     wrap.innerHTML = `<div class="empty">아직 유니버스 데이터가 없습니다.</div>`;
     return;
   }
-  const rows = data.map(u => `
+  const totalPages = Math.ceil(universeData.length / UNIVERSE_PAGE_SIZE);
+  universePage = Math.min(Math.max(universePage, 1), totalPages);
+  const start = (universePage - 1) * UNIVERSE_PAGE_SIZE;
+  const pageRows = universeData.slice(start, start + UNIVERSE_PAGE_SIZE);
+
+  const rows = pageRows.map(u => `
     <tr>
       <td>${u.name}<br><span class="code mono">${u.code}</span></td>
       <td class="mono">${u.market || "-"}</td>
@@ -372,11 +395,52 @@ async function loadUniverse() {
       <td class="mono">${u.score != null ? (u.score * 100).toFixed(1) + "%ile" : "-"}</td>
     </tr>
   `).join("");
+
   wrap.innerHTML = `<div class="table-wrap"><table>
     <thead><tr><th>종목</th><th>시장</th><th>시가총액</th><th>스코어</th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>
-  <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">총 ${data.length}종목 · 스코어는 최근 스캔일 기준 백분위(높을수록 추천 조건에 가까움)</div>`;
+  <div class="pagination" id="universePagination"></div>
+  <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">총 ${universeData.length}종목 중 ${start + 1}-${start + pageRows.length}번째 · 스코어는 최근 스캔일 기준 백분위(높을수록 추천 조건에 가까움)</div>`;
+
+  renderPagination(document.getElementById("universePagination"), totalPages, universePage, (p) => {
+    universePage = p;
+    renderUniversePage();
+  });
+}
+
+function renderPagination(container, totalPages, current, onClick) {
+  if (totalPages <= 1) { container.innerHTML = ""; return; }
+  const windowSize = 2;
+  const pages = [];
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || (p >= current - windowSize && p <= current + windowSize)) {
+      pages.push(p);
+    } else if (pages[pages.length - 1] !== "…") {
+      pages.push("…");
+    }
+  }
+  const mkBtn = (label, page, disabled, active) => {
+    const b = document.createElement("button");
+    b.className = "page-btn" + (active ? " active" : "");
+    b.textContent = label;
+    b.disabled = !!disabled;
+    if (!disabled && page != null) b.addEventListener("click", () => onClick(page));
+    return b;
+  };
+  container.innerHTML = "";
+  container.appendChild(mkBtn("‹", current - 1, current === 1));
+  pages.forEach(p => {
+    if (p === "…") {
+      const span = document.createElement("span");
+      span.className = "page-ellipsis";
+      span.textContent = "…";
+      container.appendChild(span);
+    } else {
+      container.appendChild(mkBtn(String(p), p, false, p === current));
+    }
+  });
+  container.appendChild(mkBtn("›", current + 1, current === totalPages));
 }
 
 document.querySelectorAll("#universeSortToggle .tab-btn").forEach(b => {
