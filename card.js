@@ -146,8 +146,9 @@ export function buildSignalCard(sig, opts = {}) {
     ${d.spark && d.spark.length > 1 ? `<div class="spark"><svg data-role="spark"></svg><div class="spark-legend"><span>${d.spark_start && sig.scan_date ? `${d.spark_start} ~ ${sig.scan_date}` : `최근 ${d.spark.length}거래일`}</span>${d.proximity != null ? `<span>52주고가대비 ${(d.proximity * 100).toFixed(0)}%</span>` : ""}</div></div>` : ""}
     ${showReason && sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
     ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
-    ${d.stop_price != null || d.max_loss_pct != null ? `
+    ${d.stop_price != null || d.max_loss_pct != null || d.position_amount != null ? `
     <div class="risk-grid">
+      ${d.position_amount != null ? `<div class="risk"><div class="label">매수 예정 금액</div><div class="val mono">${fmtWon(d.position_amount)}${d.position_pct != null ? ` <span style="font-weight:400;color:var(--ink-faint)">(계좌 ${d.position_pct}%)</span>` : ""}</div></div>` : ""}
       ${d.stop_price != null ? `<div class="risk"><div class="label">손절가</div><div class="val mono down">${fmtWon(d.stop_price)}</div></div>` : ""}
       ${d.max_loss_pct != null ? `<div class="risk"><div class="label">예상 최대손실률</div><div class="val mono down">${d.max_loss_pct}%</div></div>` : ""}
     </div>` : ""}
