@@ -39,12 +39,17 @@
 .fin-body[hidden]{ display:none; }
 .fin-body svg{ display:block; width:100%; height:auto; }
 .fin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
-.fin-tile{ background:var(--surface-2); border-radius:9px; padding:7px 9px; }
+.fin-tile{ background:var(--surface-2); border-radius:9px; padding:7px 9px; border:1px solid transparent;
+  text-align:left; font-family:inherit; cursor:pointer; width:100%; }
+.fin-tile:hover{ border-color:var(--border); }
+.fin-tile.active{ border-color:var(--accent); background:var(--accent-soft); }
 .fin-tile .label{ font-size:9.5px; color:var(--ink-muted); }
 .fin-tile .val{ font-size:13.5px; font-weight:700; margin-top:1px; }
 .fin-tile .delta{ font-size:9.5px; margin-top:2px; font-weight:600; }
 .fin-tile .delta.up{ color:var(--up); } .fin-tile .delta.down{ color:var(--down); } .fin-tile .delta.flat{ color:var(--ink-faint); font-weight:500; }
 .fin-note{ font-size:9.5px; color:var(--ink-faint); margin-top:8px; }
+.fin-chart-caption{ font-size:10.5px; font-weight:600; color:var(--ink-muted); margin-bottom:2px; }
+.fin-hint{ font-size:9px; color:var(--ink-faint); margin-top:2px; text-align:center; }
 
 .track{ font-size:10.5px; color:var(--ink-faint); margin-top:11px; padding-top:9px; border-top:1px solid var(--border); line-height:1.5; }
 

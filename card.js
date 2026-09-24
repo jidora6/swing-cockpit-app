@@ -67,9 +67,12 @@ function drawSpark(svg, prices, dates) {
   }
 }
 
-function drawFinBars(svg, years, vals) {
+function drawFinBars(svg, years, vals, fmtVal) {
+  fmtVal = fmtVal || (v => v.toFixed(1) + "%");
+  // null(산출불가) 연도는 건너뛰되 x축 자리는 유지 — years/vals 길이를 맞춰서 넘겨받는다.
+  const present = vals.filter(v => v != null);
   const W = 380, H = 74, padL = 6, padR = 6, padT = 6, padB = 14;
-  const max = Math.max(...vals, 0), min = Math.min(...vals, 0);
+  const max = Math.max(...present, 0), min = Math.min(...present, 0);
   const range = (max - min) || 1;
   const zeroY = padT + (max / range) * (H - padT - padB);
   const bw = (W - padL - padR) / years.length;
@@ -77,47 +80,38 @@ function drawFinBars(svg, years, vals) {
   svg.innerHTML = "";
   svg.appendChild(el("line", { x1: padL, x2: W - padR, y1: zeroY, y2: zeroY, stroke: "var(--border)", "stroke-width": 1 }));
   vals.forEach((v, i) => {
-    const barH = Math.abs(v) / range * (H - padT - padB);
     const x = padL + i * bw + bw * 0.22, w = bw * 0.56;
-    const y = v >= 0 ? zeroY - barH : zeroY;
-    svg.appendChild(el("rect", { x, y, width: w, height: Math.max(barH, 1.5), rx: 3, fill: v < 0 ? "var(--down)" : "var(--accent)" }));
-    const lt = el("text", { x: x + w / 2, y: v >= 0 ? y - 3 : y + barH + 10, "text-anchor": "middle", "font-size": 8.5, fill: "var(--ink)", "font-weight": 600 });
-    lt.textContent = v.toFixed(1) + "%"; svg.appendChild(lt);
+    if (v != null) {
+      const barH = Math.abs(v) / range * (H - padT - padB);
+      const y = v >= 0 ? zeroY - barH : zeroY;
+      svg.appendChild(el("rect", { x, y, width: w, height: Math.max(barH, 1.5), rx: 3, fill: v < 0 ? "var(--down)" : "var(--accent)" }));
+      const lt = el("text", { x: x + w / 2, y: v >= 0 ? y - 3 : y + barH + 10, "text-anchor": "middle", "font-size": 8.5, fill: "var(--ink)", "font-weight": 600 });
+      lt.textContent = fmtVal(v); svg.appendChild(lt);
+    }
     const yt = el("text", { x: x + w / 2, y: H - 3, "text-anchor": "middle", "font-size": 8, fill: "var(--ink-faint)" });
     yt.textContent = "'" + String(years[i]).slice(-2); svg.appendChild(yt);
   });
 }
 
-function finTile(label, val, delta, cls) {
-  return `<div class="fin-tile"><div class="label">${label}</div><div class="val mono">${val}</div><div class="delta ${cls}">${delta}</div></div>`;
+function finTile(metric, label, val, delta, cls) {
+  return `<button type="button" class="fin-tile" data-role="fintile" data-metric="${metric}"><div class="label">${label}</div><div class="val mono">${val}</div><div class="delta ${cls}">${delta}</div></button>`;
 }
 
-function fin5RowHtml(label, years, vals, fmt) {
-  const cells = years.map((_, i) => {
-    const v = vals ? vals[i] : null;
-    return `<td class="mono">${v == null ? "-" : fmt(v)}</td>`;
-  }).join("");
-  return `<tr><td>${label}</td>${cells}</tr>`;
-}
+const FIN5_METRICS = {
+  op_margin: { label: "영업이익률", fmt: v => v.toFixed(1) + "%" },
+  eps: { label: "EPS", fmt: v => v.toLocaleString("ko-KR") + "원" },
+  bps: { label: "BPS", fmt: v => v.toLocaleString("ko-KR") + "원" },
+  roe: { label: "ROE", fmt: v => v.toFixed(1) + "%" },
+  per: { label: "PER", fmt: v => v.toFixed(1) + "배" },
+};
 
-function buildFin5Table(fin) {
-  const years = fin.years;
-  const headCells = years.map(y => `<th>'${String(y).slice(-2)}</th>`).join("");
-  const rows = [
-    fin5RowHtml("영업이익률", years, fin.op_margin, v => v.toFixed(1) + "%"),
-    fin5RowHtml("EPS", years, fin.eps_history, v => v.toLocaleString("ko-KR") + "원"),
-    fin5RowHtml("BPS", years, fin.bps_history, v => v.toLocaleString("ko-KR") + "원"),
-    fin5RowHtml("ROE", years, fin.roe_history, v => v.toFixed(1) + "%"),
-    fin5RowHtml("PER", years, fin.per_history, v => v.toFixed(1) + "배"),
-  ].join("");
-  return `
-    <div class="table-wrap fin5-table-wrap">
-      <table class="fin5-table">
-        <thead><tr><th></th>${headCells}</tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    ${fin.per_history_note ? `<div class="fin-note">PER: ${fin.per_history_note}</div>` : ""}`;
+function fin5Values(fin, metric) {
+  if (metric === "op_margin") return fin.op_margin;
+  if (metric === "eps") return fin.eps_history;
+  if (metric === "bps") return fin.bps_history;
+  if (metric === "roe") return fin.roe_history;
+  if (metric === "per") return fin.per_history;
+  return null;
 }
 
 /**
@@ -135,13 +129,13 @@ export function buildSignalCard(sig, opts = {}) {
   let finHtml = "";
   if (fin) {
     const epsTile = fin.eps_note
-      ? finTile("EPS", fin.eps_note, "적자 상태", "down")
-      : finTile("EPS", fin.eps.toLocaleString("ko-KR") + "원", fin.eps_delta_pct != null ? fmtPct(fin.eps_delta_pct) + " 전년比" : "", fin.eps_delta_pct >= 0 ? "up" : "down");
-    const bpsTile = finTile("BPS", fin.bps.toLocaleString("ko-KR") + "원", fin.bps_delta_pct != null ? fmtPct(fin.bps_delta_pct) + " 전년比" : "", fin.bps_delta_pct >= 0 ? "up" : "down");
-    const roeTile = finTile("ROE", fin.roe.toFixed(1) + "%", fin.roe_delta_pp != null ? fmtPP(fin.roe_delta_pp) + " 전년比" : "", fin.roe_delta_pp >= 0 ? "up" : "down");
+      ? finTile("eps", "EPS", fin.eps_note, "적자 상태", "down")
+      : finTile("eps", "EPS", fin.eps.toLocaleString("ko-KR") + "원", fin.eps_delta_pct != null ? fmtPct(fin.eps_delta_pct) + " 전년比" : "", fin.eps_delta_pct >= 0 ? "up" : "down");
+    const bpsTile = finTile("bps", "BPS", fin.bps.toLocaleString("ko-KR") + "원", fin.bps_delta_pct != null ? fmtPct(fin.bps_delta_pct) + " 전년比" : "", fin.bps_delta_pct >= 0 ? "up" : "down");
+    const roeTile = finTile("roe", "ROE", fin.roe.toFixed(1) + "%", fin.roe_delta_pp != null ? fmtPP(fin.roe_delta_pp) + " 전년比" : "", fin.roe_delta_pp >= 0 ? "up" : "down");
     const perTile = fin.per != null
-      ? finTile("PER", fin.per.toFixed(1) + "배", "현재 주가 기준", "flat")
-      : finTile("PER", "산출불가", "당기순손실 상태", "flat");
+      ? finTile("per", "PER", fin.per.toFixed(1) + "배", "현재 주가 기준", "flat")
+      : finTile("per", "PER", "산출불가", "당기순손실 상태", "flat");
     const toggleHtml = expandFin
       ? `<div class="fin-label">재무 스냅샷 (영업이익률·EPS·BPS·ROE·PER)</div>`
       : `<button class="fin-toggle" data-role="fintoggle" aria-expanded="false">
@@ -152,15 +146,11 @@ export function buildSignalCard(sig, opts = {}) {
     finHtml = `
       ${toggleHtml}
       <div class="fin-body" data-role="finbody" ${expandFin ? "" : "hidden"}>
+        <div class="fin-chart-caption" data-role="finchartcaption">영업이익률 5년 추이</div>
         <svg data-role="finchart"></svg>
+        ${has5y ? `<div class="fin-hint">지표를 탭하면 5년 추이로 볼 수 있습니다</div>` : ""}
         <div class="fin-grid">${epsTile}${bpsTile}${roeTile}${perTile}</div>
-        <div class="fin-note">DART 공시 기준 · 지배주주 귀속분 · ${fin.years[0]}~${fin.years[fin.years.length - 1]}</div>
-        ${has5y ? `
-        <button class="fin-toggle" data-role="fin5toggle" aria-expanded="false" style="margin-top:9px">
-          <span data-role="fin5text">5년치 상세 보기</span>
-          <i class="chev" aria-hidden="true">⌄</i>
-        </button>
-        <div class="fin5-body" data-role="fin5body" hidden>${buildFin5Table(fin)}</div>` : ""}
+        <div class="fin-note" data-role="finnote">DART 공시 기준 · 지배주주 귀속분 · ${fin.years[0]}~${fin.years[fin.years.length - 1]}</div>
       </div>`;
   }
 
@@ -181,13 +171,11 @@ export function buildSignalCard(sig, opts = {}) {
     ${d.spark && d.spark.length > 1 ? `<div class="spark"><svg data-role="spark"></svg><div class="spark-legend"><span>${d.spark_start && sig.scan_date ? `${d.spark_start} ~ ${sig.scan_date}` : `최근 ${d.spark.length}거래일`}</span>${d.proximity != null ? `<span>52주고가대비 ${(d.proximity * 100).toFixed(0)}%</span>` : ""}</div></div>` : ""}
     ${showReason && sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
     ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
-    ${d.stop_price != null || d.max_loss_pct != null || d.position_amount != null ? `
+    ${d.price != null || d.stop_price != null ? `
     <div class="risk-grid">
-      ${d.position_amount != null ? `<div class="risk"><div class="label">매수 예정 금액</div><div class="val mono">${fmtWon(d.position_amount)}</div></div>` : ""}
+      ${d.price != null ? `<div class="risk"><div class="label">진입가</div><div class="val mono">${fmtWon(d.price)}</div></div>` : ""}
       ${d.stop_price != null ? `<div class="risk"><div class="label">손절가</div><div class="val mono down">${fmtWon(d.stop_price)}</div></div>` : ""}
-      ${d.max_loss_pct != null ? `<div class="risk"><div class="label">예상 최대손실률</div><div class="val mono down">${d.max_loss_pct}%</div></div>` : ""}
-    </div>
-    <div class="scandate" style="margin-top:6px">* 1,000만원 투자를 가정한 예시 금액(실제 계좌 자산과 무관)</div>` : ""}
+    </div>` : ""}
     ${finHtml}
     ${d.track_record ? `<div class="track">${d.track_record}</div>` : ""}
     <div class="scandate">${sig.scan_date} 스캔 기준 추천 정보</div>
@@ -197,8 +185,31 @@ export function buildSignalCard(sig, opts = {}) {
     drawSpark(card.querySelector('[data-role="spark"]'), d.spark, d.spark_dates);
   }
   if (fin) {
+    let currentMetric = "op_margin";
+    const drawMetric = (metric) => {
+      currentMetric = metric;
+      const info = FIN5_METRICS[metric];
+      const vals = fin5Values(fin, metric);
+      const caption = card.querySelector('[data-role="finchartcaption"]');
+      if (caption) caption.textContent = `${info.label} 5년 추이`;
+      drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, vals, info.fmt);
+      card.querySelectorAll('[data-role="fintile"]').forEach(t => t.classList.toggle("active", t.dataset.metric === metric));
+    };
+
+    const wireTiles = () => {
+      card.querySelectorAll('[data-role="fintile"]').forEach(tile => {
+        tile.addEventListener("click", () => {
+          const metric = tile.dataset.metric;
+          const vals = fin5Values(fin, metric);
+          if (!vals || vals.every(v => v == null)) return; // 5년치 데이터가 없으면 무시(단일값만 있는 과거 데이터 등)
+          drawMetric(metric);
+        });
+      });
+    };
+
     if (expandFin) {
       drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin);
+      wireTiles();
     } else {
       const toggle = card.querySelector('[data-role="fintoggle"]');
       const body = card.querySelector('[data-role="finbody"]');
@@ -209,17 +220,11 @@ export function buildSignalCard(sig, opts = {}) {
         body.hidden = open;
         card.querySelector('[data-role="fintext"]').textContent = open
           ? "재무 스냅샷 보기 (영업이익률·EPS·BPS·ROE·PER)" : "재무 스냅샷 접기";
-        if (!open && !drawn) { drawn = true; drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin); }
-      });
-    }
-    const fin5toggle = card.querySelector('[data-role="fin5toggle"]');
-    if (fin5toggle) {
-      const fin5body = card.querySelector('[data-role="fin5body"]');
-      fin5toggle.addEventListener("click", () => {
-        const open = fin5toggle.getAttribute("aria-expanded") === "true";
-        fin5toggle.setAttribute("aria-expanded", String(!open));
-        fin5body.hidden = open;
-        card.querySelector('[data-role="fin5text"]').textContent = open ? "5년치 상세 보기" : "5년치 상세 접기";
+        if (!open && !drawn) {
+          drawn = true;
+          drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin);
+          wireTiles();
+        }
       });
     }
   }
