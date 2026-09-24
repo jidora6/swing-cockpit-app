@@ -38,10 +38,12 @@
   }
   *{box-sizing:border-box}
   [hidden]{ display:none !important; }
+  html{ overflow-x:hidden; width:100%; }
   body{
     background:var(--bg); color:var(--ink); margin:0;
     font-family:"IBM Plex Sans KR","Noto Sans KR",system-ui,sans-serif;
     padding-inline:16px; max-width:720px; margin-inline:auto;
+    overflow-x:hidden; width:100%;
   }
   .mono{ font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums; }
   h1,h2{ text-wrap:balance; margin:0; }
