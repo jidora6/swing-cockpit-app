@@ -148,7 +148,7 @@ export function buildSignalCard(sig, opts = {}) {
     ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
     ${d.stop_price != null || d.max_loss_pct != null || d.position_amount != null ? `
     <div class="risk-grid">
-      ${d.position_amount != null ? `<div class="risk"><div class="label">매수 예정 금액</div><div class="val mono">${fmtWon(d.position_amount)}${d.position_pct != null ? ` <span style="font-weight:400;color:var(--ink-faint)">(계좌 ${d.position_pct}%)</span>` : ""}</div></div>` : ""}
+      ${d.position_amount != null ? `<div class="risk"><div class="label">매수 예정 금액</div><div class="val mono">${fmtWon(d.position_amount)}</div></div>` : ""}
       ${d.stop_price != null ? `<div class="risk"><div class="label">손절가</div><div class="val mono down">${fmtWon(d.stop_price)}</div></div>` : ""}
       ${d.max_loss_pct != null ? `<div class="risk"><div class="label">예상 최대손실률</div><div class="val mono down">${d.max_loss_pct}%</div></div>` : ""}
     </div>` : ""}
