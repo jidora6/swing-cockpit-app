@@ -128,6 +128,10 @@ export function buildSignalCard(sig, opts = {}) {
   const fin = d.fundamentals || null;
   let finHtml = "";
   if (fin) {
+    const opLatest = fin.op_margin[fin.op_margin.length - 1];
+    const opPrior = fin.op_margin.length >= 2 ? fin.op_margin[fin.op_margin.length - 2] : null;
+    const opDelta = opPrior != null ? opLatest - opPrior : null;
+    const opMarginTile = finTile("op_margin", "영업이익률", opLatest.toFixed(1) + "%", opDelta != null ? fmtPP(opDelta) + " 전년比" : "", opDelta != null && opDelta >= 0 ? "up" : "down");
     const epsTile = fin.eps_note
       ? finTile("eps", "EPS", fin.eps_note, "적자 상태", "down")
       : finTile("eps", "EPS", fin.eps.toLocaleString("ko-KR") + "원", fin.eps_delta_pct != null ? fmtPct(fin.eps_delta_pct) + " 전년比" : "", fin.eps_delta_pct >= 0 ? "up" : "down");
@@ -149,7 +153,7 @@ export function buildSignalCard(sig, opts = {}) {
         <div class="fin-chart-caption" data-role="finchartcaption">영업이익률 5년 추이</div>
         <svg data-role="finchart"></svg>
         ${has5y ? `<div class="fin-hint">지표를 탭하면 5년 추이로 볼 수 있습니다</div>` : ""}
-        <div class="fin-grid">${epsTile}${bpsTile}${roeTile}${perTile}</div>
+        <div class="fin-grid">${opMarginTile}${epsTile}${bpsTile}${roeTile}${perTile}</div>
         <div class="fin-note" data-role="finnote">DART 공시 기준 · 지배주주 귀속분 · ${fin.years[0]}~${fin.years[fin.years.length - 1]}</div>
       </div>`;
   }
@@ -208,8 +212,8 @@ export function buildSignalCard(sig, opts = {}) {
     };
 
     if (expandFin) {
-      drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin);
       wireTiles();
+      drawMetric("op_margin");
     } else {
       const toggle = card.querySelector('[data-role="fintoggle"]');
       const body = card.querySelector('[data-role="finbody"]');
@@ -222,8 +226,8 @@ export function buildSignalCard(sig, opts = {}) {
           ? "재무 스냅샷 보기 (영업이익률·EPS·BPS·ROE·PER)" : "재무 스냅샷 접기";
         if (!open && !drawn) {
           drawn = true;
-          drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin);
           wireTiles();
+          drawMetric("op_margin");
         }
       });
     }
