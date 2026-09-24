@@ -92,6 +92,34 @@ function finTile(label, val, delta, cls) {
   return `<div class="fin-tile"><div class="label">${label}</div><div class="val mono">${val}</div><div class="delta ${cls}">${delta}</div></div>`;
 }
 
+function fin5RowHtml(label, years, vals, fmt) {
+  const cells = years.map((_, i) => {
+    const v = vals ? vals[i] : null;
+    return `<td class="mono">${v == null ? "-" : fmt(v)}</td>`;
+  }).join("");
+  return `<tr><td>${label}</td>${cells}</tr>`;
+}
+
+function buildFin5Table(fin) {
+  const years = fin.years;
+  const headCells = years.map(y => `<th>'${String(y).slice(-2)}</th>`).join("");
+  const rows = [
+    fin5RowHtml("영업이익률", years, fin.op_margin, v => v.toFixed(1) + "%"),
+    fin5RowHtml("EPS", years, fin.eps_history, v => v.toLocaleString("ko-KR") + "원"),
+    fin5RowHtml("BPS", years, fin.bps_history, v => v.toLocaleString("ko-KR") + "원"),
+    fin5RowHtml("ROE", years, fin.roe_history, v => v.toFixed(1) + "%"),
+    fin5RowHtml("PER", years, fin.per_history, v => v.toFixed(1) + "배"),
+  ].join("");
+  return `
+    <div class="table-wrap fin5-table-wrap">
+      <table class="fin5-table">
+        <thead><tr><th></th>${headCells}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${fin.per_history_note ? `<div class="fin-note">PER: ${fin.per_history_note}</div>` : ""}`;
+}
+
 /**
  * signals 행(sig: {name, ticker, scan_date, reason, details})을 받아 상세 카드 DOM을 만든다.
  * details 안의 어떤 필드가 없어도(포지션/매매내역에서 조회해온 signal은 필드가 없을 수 있음) 안전하게 생략한다.
@@ -120,12 +148,19 @@ export function buildSignalCard(sig, opts = {}) {
           <span data-role="fintext">재무 스냅샷 보기 (영업이익률·EPS·BPS·ROE·PER)</span>
           <i class="chev" aria-hidden="true">⌄</i>
         </button>`;
+    const has5y = Array.isArray(fin.eps_history) && fin.eps_history.length > 1;
     finHtml = `
       ${toggleHtml}
       <div class="fin-body" data-role="finbody" ${expandFin ? "" : "hidden"}>
         <svg data-role="finchart"></svg>
         <div class="fin-grid">${epsTile}${bpsTile}${roeTile}${perTile}</div>
         <div class="fin-note">DART 공시 기준 · 지배주주 귀속분 · ${fin.years[0]}~${fin.years[fin.years.length - 1]}</div>
+        ${has5y ? `
+        <button class="fin-toggle" data-role="fin5toggle" aria-expanded="false" style="margin-top:9px">
+          <span data-role="fin5text">5년치 상세 보기</span>
+          <i class="chev" aria-hidden="true">⌄</i>
+        </button>
+        <div class="fin5-body" data-role="fin5body" hidden>${buildFin5Table(fin)}</div>` : ""}
       </div>`;
   }
 
@@ -175,6 +210,16 @@ export function buildSignalCard(sig, opts = {}) {
         card.querySelector('[data-role="fintext"]').textContent = open
           ? "재무 스냅샷 보기 (영업이익률·EPS·BPS·ROE·PER)" : "재무 스냅샷 접기";
         if (!open && !drawn) { drawn = true; drawFinBars(card.querySelector('[data-role="finchart"]'), fin.years, fin.op_margin); }
+      });
+    }
+    const fin5toggle = card.querySelector('[data-role="fin5toggle"]');
+    if (fin5toggle) {
+      const fin5body = card.querySelector('[data-role="fin5body"]');
+      fin5toggle.addEventListener("click", () => {
+        const open = fin5toggle.getAttribute("aria-expanded") === "true";
+        fin5toggle.setAttribute("aria-expanded", String(!open));
+        fin5body.hidden = open;
+        card.querySelector('[data-role="fin5text"]').textContent = open ? "5년치 상세 보기" : "5년치 상세 접기";
       });
     }
   }
