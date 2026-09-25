@@ -211,8 +211,16 @@
 
   <section>
     <div class="section-head">
+      <h2>성과 요약</h2>
+      <span class="note">청산 완료된 거래 기준</span>
+    </div>
+    <div id="perfStatsWrap"><div class="empty">불러오는 중…</div></div>
+  </section>
+
+  <section>
+    <div class="section-head">
       <h2>자산 추이</h2>
-      <span class="note">실제 모의투자 계좌 스냅샷</span>
+      <span class="note">코스피 대비 상대수익률</span>
     </div>
     <div class="chart-card">
       <svg id="equityChart" viewBox="0 0 640 220" preserveAspectRatio="none" role="img" aria-label="자산 추이 차트"></svg>
@@ -585,7 +593,7 @@ function wireExpandableOwnerRows(container, tickers) {
   });
 }
 
-function drawEquityChart(points) {
+function drawEquityChart(points, kospiRows) {
   const svg = document.getElementById("equityChart");
   svg.innerHTML = "";
   if (points.length < 2) {
@@ -594,34 +602,67 @@ function drawEquityChart(points) {
   }
   const svgns = "http://www.w3.org/2000/svg";
   const el = (tag, attrs) => { const e = document.createElementNS(svgns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
-  const W = 640, H = 220, padL = 54, padR = 10, padT = 14, padB = 10;
-  const vals = points.map(p => p.equity);
-  const min = Math.min(...vals), max = Math.max(...vals);
+  const W = 640, H = 220, padL = 46, padR = 10, padT = 14, padB = 10;
+
+  // 원화 절대값 대신 시작일 대비 %로 바꿔서, 같은 축에 코스피와 나란히 비교할 수 있게 한다.
+  const myPct = points.map(p => (p.equity / points[0].equity - 1) * 100);
+
+  // kospiRows: [{date, close}, ...] 오름차순 — 내 자산 시작일과 가장 가까운(그 날 또는 그 이후 첫) 종가를 기준(0%)으로 삼는다.
+  let kospiPct = null;
+  if (Array.isArray(kospiRows) && kospiRows.length > 0) {
+    const startDate = points[0].date;
+    const baseRow = kospiRows.find(k => k.date >= startDate) || kospiRows[kospiRows.length - 1];
+    const base = baseRow.close;
+    kospiPct = points.map(p => {
+      let match = baseRow;
+      for (const k of kospiRows) { if (k.date <= p.date) match = k; else break; }
+      return (match.close / base - 1) * 100;
+    });
+  }
+
+  const allVals = kospiPct ? myPct.concat(kospiPct) : myPct;
+  const min = Math.min(...allVals, 0), max = Math.max(...allVals, 0);
+  const range = (max - min) || 1;
   const x = i => padL + (i / (points.length - 1)) * (W - padL - padR);
-  const y = v => padT + (1 - ((v - min) / ((max - min) || 1))) * (H - padT - padB);
+  const y = v => padT + (1 - ((v - min) / range)) * (H - padT - padB);
 
   [min, max].forEach(v => {
     const gy = y(v);
     svg.appendChild(el("line", { x1: padL, x2: W - padR, y1: gy, y2: gy, stroke: "var(--border)", "stroke-width": 1 }));
     const t = el("text", { x: 4, y: gy + 3, "font-size": 9, fill: "var(--ink-faint)", "font-family": "IBM Plex Mono, monospace" });
-    t.textContent = (v / 10000).toFixed(0) + "만";
+    t.textContent = v.toFixed(1) + "%";
     svg.appendChild(t);
   });
 
-  let d = "M" + x(0) + "," + y(vals[0]);
-  vals.forEach((v, i) => { if (i > 0) d += " L" + x(i) + "," + y(v); });
-  const areaD = d + ` L${x(vals.length - 1)},${H - padB} L${x(0)},${H - padB} Z`;
-  svg.appendChild(el("path", { d: areaD, fill: "var(--accent-soft)", stroke: "none" }));
-  svg.appendChild(el("path", { d, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+  const buildPath = (vals) => {
+    let d = "M" + x(0) + "," + y(vals[0]);
+    vals.forEach((v, i) => { if (i > 0) d += " L" + x(i) + "," + y(v); });
+    return d;
+  };
 
-  const lastX = x(vals.length - 1), lastY = y(vals[vals.length - 1]);
+  if (kospiPct) {
+    svg.appendChild(el("path", {
+      d: buildPath(kospiPct), fill: "none", stroke: "var(--warn)", "stroke-width": 1.5,
+      "stroke-dasharray": "4,3", "stroke-linejoin": "round", "stroke-linecap": "round",
+    }));
+  }
+
+  const myPath = buildPath(myPct);
+  const areaD = myPath + ` L${x(myPct.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
+  svg.appendChild(el("path", { d: areaD, fill: "var(--accent-soft)", stroke: "none" }));
+  svg.appendChild(el("path", { d: myPath, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+
+  const lastX = x(myPct.length - 1), lastY = y(myPct[myPct.length - 1]);
   svg.appendChild(el("circle", { cx: lastX, cy: lastY, r: 4, fill: "var(--accent)" }));
   const lt = el("text", { x: lastX, y: lastY - 9, "text-anchor": "end", "font-size": 11, fill: "var(--ink)", "font-family": "IBM Plex Mono, monospace", "font-weight": 600 });
-  lt.textContent = fmtWon(vals[vals.length - 1]);
+  lt.textContent = fmtWon(points[points.length - 1].equity);
   svg.appendChild(lt);
 
   const legend = document.getElementById("chartLegend");
-  legend.innerHTML = `<span>${points[0].date}</span><span>${points.length}일치 기록</span><span>${points[points.length - 1].date}</span>`;
+  const myLast = myPct[myPct.length - 1];
+  const myTxt = `<span style="color:var(--accent);font-weight:600">내 수익률 ${fmtPct(myLast)}</span>`;
+  const kospiTxt = kospiPct ? ` · <span style="color:var(--warn)">코스피 ${fmtPct(kospiPct[kospiPct.length - 1])}</span>` : "";
+  legend.innerHTML = `<span>${points[0].date}</span><span>${myTxt}${kospiTxt}</span><span>${points[points.length - 1].date}</span>`;
 }
 
 function switchTab(tab) {
@@ -641,11 +682,14 @@ async function bootOwner() {
   document.getElementById("logoutBtn").hidden = false;
   switchTab("owner");
 
-  const [{ data: positions, error: posErr }, { data: trades, error: tradeErr }, { data: snaps, error: snapErr }, { data: earliestSignal }] = await Promise.all([
+  const [{ data: positions, error: posErr }, { data: trades, error: tradeErr }, { data: snaps, error: snapErr }, { data: earliestSignal }, { data: kospiRows }] = await Promise.all([
     supabase.from("positions").select("*").eq("status", "open").order("entry_date", { ascending: false }),
-    supabase.from("trades").select("*").order("exit_date", { ascending: false }).limit(20),
+    supabase.from("trades").select("*").order("exit_date", { ascending: false }).limit(500),
     supabase.from("equity_snapshots").select("*").order("snap_date", { ascending: true }).limit(200),
     supabase.from("signals").select("scan_date").order("scan_date", { ascending: true }).limit(1),
+    // PostgREST 기본 응답 제한(1000행)에 걸리면 안 되므로 날짜로 필터링해서 필요한 만큼만 가져온다
+    // (이 앱은 2026-09부터 운영 시작이라 이 시점 이전 데이터는 애초에 비교 대상이 아님).
+    supabase.from("kospi_history").select("date,close").gte("date", "2025-01-01").order("date", { ascending: true }),
   ]);
 
   if (posErr || tradeErr || snapErr) {
@@ -707,7 +751,8 @@ async function bootOwner() {
   if (!trades || trades.length === 0) {
     tradesWrap.innerHTML = `<div class="empty">아직 청산된 매매가 없습니다.</div>`;
   } else {
-    const rows = trades.map((t, i) => {
+    const recentTrades = trades.slice(0, 20); // 통계는 전체(trades)로 내고, 표시는 최근 20건만
+    const rows = recentTrades.map((t, i) => {
       const cls = t.pnl_pct > 0 ? "up" : t.pnl_pct < 0 ? "down" : "";
       return `
       <tr class="row-clickable" data-idx="${i}">
@@ -723,7 +768,28 @@ async function bootOwner() {
       <tbody>${rows}</tbody>
     </table></div>
     <div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">행을 탭하면 추천 당시 상세정보를 볼 수 있습니다.</div>`;
-    wireExpandableOwnerRows(tradesWrap, trades.map(t => t.ticker));
+    wireExpandableOwnerRows(tradesWrap, recentTrades.map(t => t.ticker));
+  }
+
+  // 성과 요약(승률/평균 손익률/평균 보유일) — 표시 제한(20건)과 무관하게 전체 trades로 계산
+  const perfWrap = document.getElementById("perfStatsWrap");
+  if (!trades || trades.length === 0) {
+    perfWrap.innerHTML = `<div class="empty">아직 청산된 매매가 없어 통계를 낼 수 없습니다.</div>`;
+  } else {
+    const n = trades.length;
+    const wins = trades.filter(t => t.pnl_pct > 0).length;
+    const winRate = (wins / n) * 100;
+    const avgPnl = trades.reduce((sum, t) => sum + t.pnl_pct, 0) / n;
+    const holdDays = trades
+      .filter(t => t.entry_date && t.exit_date)
+      .map(t => (new Date(t.exit_date) - new Date(t.entry_date)) / 86400000);
+    const avgHold = holdDays.length ? holdDays.reduce((a, b) => a + b, 0) / holdDays.length : null;
+    perfWrap.innerHTML = `<div class="summary">
+      <div class="cell"><div class="label">거래 수</div><div class="value mono">${n}건</div></div>
+      <div class="cell"><div class="label">승률</div><div class="value mono">${winRate.toFixed(0)}%</div></div>
+      <div class="cell"><div class="label">평균 손익률</div><div class="value mono ${avgPnl >= 0 ? "up" : "down"}">${fmtPct(avgPnl)}</div></div>
+    </div>
+    ${avgHold != null ? `<div class="note" style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">평균 보유일: ${avgHold.toFixed(1)}일</div>` : ""}`;
   }
 
   // 자산 스냅샷 기록은 2026-09-21부터 시작됐지만 실제로는 2026-09-16 첫 스캔(=시드자본 그대로,
@@ -734,7 +800,7 @@ async function bootOwner() {
   if (seedDate && (chartPoints.length === 0 || chartPoints[0].date > seedDate)) {
     chartPoints.unshift({ date: seedDate, equity: SEED_CAPITAL });
   }
-  drawEquityChart(chartPoints);
+  drawEquityChart(chartPoints, kospiRows || []);
 }
 
 // ============================================================
