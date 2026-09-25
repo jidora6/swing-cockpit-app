@@ -213,7 +213,16 @@ export function buildSignalCard(sig, opts = {}) {
         tile.addEventListener("click", () => {
           const metric = tile.dataset.metric;
           const vals = fin5Values(fin, metric);
-          if (!vals || vals.every(v => v == null)) return; // 5년치 데이터가 없으면 무시(단일값만 있는 과거 데이터 등)
+          if (!vals || vals.every(v => v == null)) {
+            // 5년치 데이터가 아직 없는 종목(예: 이 기능 추가 전에 캐시된 재무 스냅샷) —
+            // 아무 반응 없이 넘어가면 고장난 것처럼 보이므로 명확히 안내한다.
+            const info = FIN5_METRICS[metric];
+            const caption = card.querySelector('[data-role="finchartcaption"]');
+            if (caption) caption.textContent = `${info.label} 5년치 데이터 없음`;
+            card.querySelector('[data-role="finchart"]').innerHTML = "";
+            card.querySelectorAll('[data-role="fintile"]').forEach(t => t.classList.toggle("active", t === tile));
+            return;
+          }
           drawMetric(metric);
         });
       });
