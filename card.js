@@ -125,6 +125,9 @@ export function buildSignalCard(sig, opts = {}) {
   const chg = typeof d.chg_pct === "number" ? d.chg_pct : null;
   const chgClass = chg == null ? "" : (chg >= 0 ? "up" : "down");
 
+  const stopBufferPct = (d.price != null && d.stop_price != null && d.price > 0)
+    ? (d.price - d.stop_price) / d.price * 100 : null;
+
   const fin = d.fundamentals || null;
   let finHtml = "";
   if (fin) {
@@ -172,7 +175,12 @@ export function buildSignalCard(sig, opts = {}) {
         ${chg != null ? `<div class="chg ${chgClass} mono">${fmtPct(chg)}</div>` : ""}
       </div>` : ""}
     </div>
-    ${d.spark && d.spark.length > 1 ? `<div class="spark"><svg data-role="spark"></svg><div class="spark-legend"><span>${d.spark_start && sig.scan_date ? `${d.spark_start} ~ ${sig.scan_date}` : `최근 ${d.spark.length}거래일`}</span>${d.proximity != null ? `<span>52주고가대비 ${(d.proximity * 100).toFixed(0)}%</span>` : ""}</div></div>` : ""}
+    ${d.spark && d.spark.length > 1 ? `<div class="spark"><svg data-role="spark"></svg><div class="spark-legend"><span>${d.spark_start && sig.scan_date ? `${d.spark_start} ~ ${sig.scan_date}` : `최근 ${d.spark.length}거래일`}</span>${d.proximity != null ? `<span>52주고가대비 ${(d.proximity * 100).toFixed(0)}%</span>` : ""}</div>
+    ${stopBufferPct != null || d.track_record ? `
+    <div class="spark-status">
+      ${stopBufferPct != null ? `<span class="buffer${stopBufferPct <= 5 ? " warn" : ""}">손절가까지 ${stopBufferPct.toFixed(1)}% 여유</span>` : "<span></span>"}
+      ${d.track_record ? `<span class="badge normal">오늘의 추천 조건 충족</span>` : ""}
+    </div>` : ""}</div>` : ""}
     ${showReason && sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
     ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
     ${d.price != null || d.stop_price != null ? `

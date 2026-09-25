@@ -22,6 +22,9 @@
 .spark{ margin-top:9px; }
 .spark svg{ display:block; width:100%; height:auto; }
 .spark-legend{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-faint); }
+.spark-status{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:5px; font-size:11px; font-weight:600; }
+.spark-status .buffer{ color:var(--ink-muted); }
+.spark-status .buffer.warn{ color:var(--down); }
 
 .risk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
 .risk{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:7px 9px; }
