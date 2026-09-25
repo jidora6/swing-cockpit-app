@@ -640,6 +640,12 @@ function drawEquityChart(points, kospiRows) {
     return d;
   };
 
+  // 그리기 순서 중요: 배경 채우기를 맨 먼저 깔아야, 그 안에 겹치는 코스피 선이
+  // 나중에 그려져서 채우기에 가려지지 않고 위에 보인다(전에는 순서가 반대라 가려졌음).
+  const myPath = buildPath(myPct);
+  const areaD = myPath + ` L${x(myPct.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
+  svg.appendChild(el("path", { d: areaD, fill: "var(--accent-soft)", stroke: "none" }));
+
   if (kospiPct) {
     svg.appendChild(el("path", {
       d: buildPath(kospiPct), fill: "none", stroke: "var(--warn)", "stroke-width": 1.5,
@@ -647,9 +653,6 @@ function drawEquityChart(points, kospiRows) {
     }));
   }
 
-  const myPath = buildPath(myPct);
-  const areaD = myPath + ` L${x(myPct.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
-  svg.appendChild(el("path", { d: areaD, fill: "var(--accent-soft)", stroke: "none" }));
   svg.appendChild(el("path", { d: myPath, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
 
   const lastX = x(myPct.length - 1), lastY = y(myPct[myPct.length - 1]);
