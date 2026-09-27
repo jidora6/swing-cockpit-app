@@ -147,44 +147,53 @@
 </header>
 
 <div id="publicView">
-  <section>
-    <div class="section-head">
-      <h2>오늘의 추천 종목</h2>
-      <span class="badge normal" id="signalsBadge">불러오는 중</span>
-    </div>
-    <div class="cards" id="signalCards">
-      <div class="empty">불러오는 중…</div>
-    </div>
-  </section>
+  <div class="tabbar" id="publicSubTab">
+    <button class="tab-btn active" data-subtab="signals">추천 종목</button>
+    <button class="tab-btn" data-subtab="theme">테마</button>
+  </div>
 
-  <section>
-    <div class="section-head">
-      <h2>지난 추천 성과</h2>
-      <span class="note">추천가 대비 현재가 기준 · 손절가 이탈 종목은 제외</span>
-    </div>
-    <div id="pastWrap"><div class="empty">불러오는 중…</div></div>
-  </section>
+  <div id="publicSignalsTab">
+    <section>
+      <div class="section-head">
+        <h2>오늘의 추천 종목</h2>
+        <span class="badge normal" id="signalsBadge">불러오는 중</span>
+      </div>
+      <div class="cards" id="signalCards">
+        <div class="empty">불러오는 중…</div>
+      </div>
+    </section>
 
-  <section>
-    <div class="section-head">
-      <h2>유니버스 목록</h2>
-      <span class="note">스캔 대상 전체 종목</span>
-    </div>
-    <input type="text" id="universeSearchInput" class="universe-search" placeholder="종목명 또는 코드로 찾기 (예: 삼성전자, 005930)">
-    <div class="tabbar" id="universeSortToggle">
-      <button class="tab-btn active" data-sort="marcap">시가총액순</button>
-      <button class="tab-btn" data-sort="score">스코어순</button>
-    </div>
-    <div id="universeWrap" style="margin-top:10px"><div class="empty">불러오는 중…</div></div>
-  </section>
+    <section>
+      <div class="section-head">
+        <h2>지난 추천 성과</h2>
+        <span class="note">추천가 대비 현재가 기준 · 손절가 이탈 종목은 제외</span>
+      </div>
+      <div id="pastWrap"><div class="empty">불러오는 중…</div></div>
+    </section>
 
-  <section>
-    <div class="section-head">
-      <h2>테마 브라우저</h2>
-      <span class="note">코스피 대비 최근 20거래일 상대수익률순 · 참고용, 매매 신호 아님</span>
-    </div>
-    <div id="themeWrap"><div class="empty">불러오는 중…</div></div>
-  </section>
+    <section>
+      <div class="section-head">
+        <h2>유니버스 목록</h2>
+        <span class="note">스캔 대상 전체 종목</span>
+      </div>
+      <input type="text" id="universeSearchInput" class="universe-search" placeholder="종목명 또는 코드로 찾기 (예: 삼성전자, 005930)">
+      <div class="tabbar" id="universeSortToggle">
+        <button class="tab-btn active" data-sort="marcap">시가총액순</button>
+        <button class="tab-btn" data-sort="score">스코어순</button>
+      </div>
+      <div id="universeWrap" style="margin-top:10px"><div class="empty">불러오는 중…</div></div>
+    </section>
+  </div>
+
+  <div id="publicThemeTab" hidden>
+    <section>
+      <div class="section-head">
+        <h2>테마 브라우저</h2>
+        <span class="note">코스피 대비 최근 20거래일 상대수익률순 · 참고용, 매매 신호 아님</span>
+      </div>
+      <div id="themeWrap"><div class="empty">불러오는 중…</div></div>
+    </section>
+  </div>
 </div>
 
 <div id="ownerView" hidden>
@@ -598,6 +607,15 @@ async function loadThemes() {
   });
 }
 loadThemes();
+
+document.querySelectorAll("#publicSubTab .tab-btn").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#publicSubTab .tab-btn").forEach(x => x.classList.toggle("active", x === b));
+    const showTheme = b.dataset.subtab === "theme";
+    document.getElementById("publicSignalsTab").hidden = showTheme;
+    document.getElementById("publicThemeTab").hidden = !showTheme;
+  });
+});
 
 async function runSearch() {
   const q = document.getElementById("searchInput").value.trim();
