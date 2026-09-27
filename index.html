@@ -177,6 +177,14 @@
     </div>
     <div id="universeWrap" style="margin-top:10px"><div class="empty">불러오는 중…</div></div>
   </section>
+
+  <section>
+    <div class="section-head">
+      <h2>테마 브라우저</h2>
+      <span class="note">코스피 대비 최근 20거래일 상대수익률순 · 참고용, 매매 신호 아님</span>
+    </div>
+    <div id="themeWrap"><div class="empty">불러오는 중…</div></div>
+  </section>
 </div>
 
 <div id="ownerView" hidden>
@@ -513,6 +521,83 @@ document.querySelectorAll("#universeSortToggle .tab-btn").forEach(b => {
   });
 });
 loadUniverse();
+
+function themeRowHTML(t, idx) {
+  const retClass = t.return_20d_pct >= 0 ? "up" : "down";
+  const excessClass = t.excess_vs_kospi_pct >= 0 ? "up" : "down";
+  return `
+    <tr class="row-clickable" data-idx="${idx}">
+      <td>${t.name}</td>
+      <td class="ret ${retClass} mono">${fmtPct(t.return_20d_pct)}</td>
+      <td class="ret ${excessClass} mono">${t.excess_vs_kospi_pct >= 0 ? "+" : ""}${t.excess_vs_kospi_pct.toFixed(2)}%p</td>
+      <td class="mono">${t.n_constituents ?? "-"}</td>
+    </tr>
+    <tr class="detail-row" data-detail-for="${idx}" hidden><td colspan="4"><div class="detail-inner"></div></td></tr>
+  `;
+}
+
+function themeStocksHTML(topStocks) {
+  if (!topStocks || topStocks.length === 0) return `<div class="empty">구성종목 정보 없음</div>`;
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>순위</th><th>종목</th><th>시가총액</th></tr></thead>
+        <tbody>
+          ${topStocks.map((s, i) => `
+            <tr>
+              <td class="mono">${i === 0 ? "대장주" : i + 1}</td>
+              <td>${s.name}<br><span class="code mono">${s.code}</span></td>
+              <td class="mono">${s.marcap_억?.toLocaleString("ko-KR") ?? "-"}억</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function loadThemes() {
+  const wrap = document.getElementById("themeWrap");
+  const { data, error } = await supabase
+    .from("theme_snapshot")
+    .select("code,name,return_20d_pct,excess_vs_kospi_pct,n_constituents,top_stocks")
+    .order("return_20d_pct", { ascending: false });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty">불러오기 실패: ${error.message}</div>`;
+    return;
+  }
+  if (!data || data.length === 0) {
+    wrap.innerHTML = `<div class="empty">아직 테마 데이터가 없습니다.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>테마</th><th>20일 수익률</th><th>코스피 대비</th><th>구성종목수</th></tr></thead>
+        <tbody>${data.map((t, i) => themeRowHTML(t, i)).join("")}</tbody>
+      </table>
+    </div>
+    <div class="scandate" style="margin-top:6px">테마를 탭하면 시가총액 상위 종목(대장주 포함)을 볼 수 있습니다.</div>
+  `;
+
+  wrap.querySelectorAll("tr.row-clickable").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const idx = tr.dataset.idx;
+      const detailRow = wrap.querySelector(`tr[data-detail-for="${idx}"]`);
+      const inner = detailRow.querySelector(".detail-inner");
+      const open = !detailRow.hidden;
+      if (open) { detailRow.hidden = true; tr.classList.remove("open"); return; }
+      if (!inner.dataset.built) {
+        inner.innerHTML = themeStocksHTML(data[idx].top_stocks);
+        inner.dataset.built = "1";
+      }
+      detailRow.hidden = false;
+      tr.classList.add("open");
+    });
+  });
+}
+loadThemes();
 
 async function runSearch() {
   const q = document.getElementById("searchInput").value.trim();
