@@ -74,6 +74,27 @@
     color:var(--ink-muted); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
   .tab-btn.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
 
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .theme-chip{ padding:8px 13px; border-radius:20px; border:1px solid var(--border); background:var(--surface);
+    color:var(--ink-muted); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .theme-chip.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .theme-chip.chip-up{ color:var(--up); }
+  .theme-chip.chip-down{ color:var(--down); }
+  .theme-chip.active.chip-up, .theme-chip.active.chip-down{ color:var(--accent-ink); }
+  .theme-chip.add-slot{ border-style:dashed; }
+  .theme-editor{ margin-top:10px; padding:12px; border:1px dashed var(--border); border-radius:10px; background:var(--surface); }
+  .theme-editor input{ width:100%; box-sizing:border-box; margin-top:4px; margin-bottom:8px; padding:8px; border-radius:8px;
+    border:1px solid var(--border); background:var(--bg); color:var(--ink); font-family:inherit; font-size:13px; }
+  .theme-editor .label{ font-size:11.5px; color:var(--ink-faint); }
+  .theme-editor .btn-row{ display:flex; gap:8px; }
+  .theme-editor button{ padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface);
+    color:var(--ink); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .theme-editor button.primary{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .stock-chip-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .stock-chip{ padding:7px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface);
+    cursor:pointer; font-size:12.5px; }
+  .stock-chip .rank{ color:var(--accent); font-weight:700; margin-right:4px; }
+
   .summary{
     margin-top:12px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
     background:var(--border); border:1px solid var(--border); border-radius:12px; overflow:hidden;
@@ -188,10 +209,21 @@
   <div id="publicThemeTab" hidden>
     <section>
       <div class="section-head">
-        <h2>테마 브라우저</h2>
+        <h2>테마별 흐름 및 추세</h2>
         <span class="note">코스피 대비 최근 20거래일 상대수익률순 · 참고용, 매매 신호 아님</span>
       </div>
-      <div id="themeWrap"><div class="empty">불러오는 중…</div></div>
+      <div id="themeOverview"><div class="empty">불러오는 중…</div></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>테마 종목 탐색</h2>
+        <span class="note">테마를 선택하면 아래에 종목이, 종목을 선택하면 상세정보가 나타납니다</span>
+      </div>
+      <div class="chip-row" id="themeChips"><div class="empty">불러오는 중…</div></div>
+      <div id="themeEditorWrap"></div>
+      <div id="themeStocksWrap" style="margin-top:14px"></div>
+      <div id="themeStockDetailWrap" style="margin-top:14px"></div>
     </section>
   </div>
 </div>
@@ -529,84 +561,234 @@ document.querySelectorAll("#universeSortToggle .tab-btn").forEach(b => {
     loadUniverse();
   });
 });
-loadUniverse();
+loadUniverse().then(() => loadThemes());
 
-function themeRowHTML(t, idx) {
-  const retClass = t.return_20d_pct >= 0 ? "up" : "down";
-  const excessClass = t.excess_vs_kospi_pct >= 0 ? "up" : "down";
-  return `
-    <tr class="row-clickable" data-idx="${idx}">
-      <td>${t.name}</td>
-      <td class="ret ${retClass} mono">${fmtPct(t.return_20d_pct)}</td>
-      <td class="ret ${excessClass} mono">${t.excess_vs_kospi_pct >= 0 ? "+" : ""}${t.excess_vs_kospi_pct.toFixed(2)}%p</td>
-      <td class="mono">${t.n_constituents ?? "-"}</td>
-    </tr>
-    <tr class="detail-row" data-detail-for="${idx}" hidden><td colspan="4"><div class="detail-inner"></div></td></tr>
-  `;
+// ============================================================
+// 테마 브라우저: 1) 전체 테마 흐름/추세 개요, 2) 테마 선택 -> 종목 -> 종목 상세 탐색
+// 커스텀 테마(여러 종목 묶음, 최대 2개)는 로그인 없이 이 브라우저의 localStorage에만 저장된다.
+// ============================================================
+const CUSTOM_THEME_KEY = "swingcockpit_customThemes";
+const MAX_CUSTOM_THEMES = 2;
+const THEME_CHIP_LOOKBACK = 20;
+
+function getCustomThemes() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_THEME_KEY) || "[]"); } catch { return []; }
+}
+function saveCustomThemes(list) {
+  try { localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(list)); } catch {}
 }
 
-function themeStocksHTML(topStocks) {
-  if (!topStocks || topStocks.length === 0) return `<div class="empty">구성종목 정보 없음</div>`;
+let officialThemes = [];
+let kospiRecentCloses = [];
+let selectedThemeKey = null;
+
+function themeOverviewHTML(themes) {
+  if (!themes || themes.length === 0) return `<div class="empty">아직 테마 데이터가 없습니다.</div>`;
   return `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>순위</th><th>종목</th><th>시가총액</th></tr></thead>
-        <tbody>
-          ${topStocks.map((s, i) => `
-            <tr>
-              <td class="mono">${i === 0 ? "대장주" : i + 1}</td>
-              <td>${s.name}<br><span class="code mono">${s.code}</span></td>
-              <td class="mono">${s.marcap_억?.toLocaleString("ko-KR") ?? "-"}억</td>
-            </tr>`).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-async function loadThemes() {
-  const wrap = document.getElementById("themeWrap");
-  const { data, error } = await supabase
-    .from("theme_snapshot")
-    .select("code,name,return_20d_pct,excess_vs_kospi_pct,n_constituents,top_stocks")
-    .order("return_20d_pct", { ascending: false });
-
-  if (error) {
-    wrap.innerHTML = `<div class="empty">불러오기 실패: ${error.message}</div>`;
-    return;
-  }
-  if (!data || data.length === 0) {
-    wrap.innerHTML = `<div class="empty">아직 테마 데이터가 없습니다.</div>`;
-    return;
-  }
-
-  wrap.innerHTML = `
     <div class="table-wrap">
       <table>
         <thead><tr><th>테마</th><th>20일 수익률</th><th>코스피 대비</th><th>구성종목수</th></tr></thead>
-        <tbody>${data.map((t, i) => themeRowHTML(t, i)).join("")}</tbody>
+        <tbody>${themes.map(t => {
+          const retClass = t.return_20d_pct >= 0 ? "up" : "down";
+          const excessClass = t.excess_vs_kospi_pct >= 0 ? "up" : "down";
+          return `
+            <tr>
+              <td>${t.name}</td>
+              <td class="ret ${retClass} mono">${fmtPct(t.return_20d_pct)}</td>
+              <td class="ret ${excessClass} mono">${t.excess_vs_kospi_pct >= 0 ? "+" : ""}${t.excess_vs_kospi_pct.toFixed(2)}%p</td>
+              <td class="mono">${t.n_constituents ?? "-"}</td>
+            </tr>`;
+        }).join("")}</tbody>
       </table>
     </div>
-    <div class="scandate" style="margin-top:6px">테마를 탭하면 시가총액 상위 종목(대장주 포함)을 볼 수 있습니다.</div>
   `;
+}
 
-  wrap.querySelectorAll("tr.row-clickable").forEach(tr => {
-    tr.addEventListener("click", () => {
-      const idx = tr.dataset.idx;
-      const detailRow = wrap.querySelector(`tr[data-detail-for="${idx}"]`);
-      const inner = detailRow.querySelector(".detail-inner");
-      const open = !detailRow.hidden;
-      if (open) { detailRow.hidden = true; tr.classList.remove("open"); return; }
-      if (!inner.dataset.built) {
-        inner.innerHTML = themeStocksHTML(data[idx].top_stocks);
-        inner.dataset.built = "1";
+// universe.details.spark(60일 종가 배열)로 최근 20거래일 수익률을 근사 계산 — 새 백엔드 호출 없이 클라이언트에서 산출.
+function returnFromSpark(spark) {
+  if (!spark || spark.length < THEME_CHIP_LOOKBACK + 1) return null;
+  const startP = spark[spark.length - 1 - THEME_CHIP_LOOKBACK];
+  const endP = spark[spark.length - 1];
+  if (!startP) return null;
+  return (endP / startP - 1) * 100;
+}
+
+function kospiReturn20d() {
+  if (kospiRecentCloses.length < THEME_CHIP_LOOKBACK + 1) return null;
+  const startP = kospiRecentCloses[kospiRecentCloses.length - 1 - THEME_CHIP_LOOKBACK];
+  const endP = kospiRecentCloses[kospiRecentCloses.length - 1];
+  return (endP / startP - 1) * 100;
+}
+
+function findUniverseRow(code) {
+  return universeData.find(u => u.code === code);
+}
+
+function customThemeMetrics(custom) {
+  const rets = [];
+  const stocks = [];
+  custom.tickers.forEach(code => {
+    const u = findUniverseRow(code);
+    const name = u?.details?.name || u?.name || code;
+    const marcap = u?.marcap != null ? Math.round(u.marcap / 1e8) : null;
+    const ret = u?.details?.spark ? returnFromSpark(u.details.spark) : null;
+    if (ret != null) rets.push(ret);
+    stocks.push({ code, name, marcap_억: marcap });
+  });
+  stocks.sort((a, b) => (b.marcap_억 ?? -1) - (a.marcap_억 ?? -1));
+  const avgRet = rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : null;
+  const kRet = kospiReturn20d();
+  return {
+    key: "custom:" + custom.id, name: custom.name, isCustom: true, custom,
+    return_20d_pct: avgRet, excess_vs_kospi_pct: (avgRet != null && kRet != null) ? avgRet - kRet : null,
+    n_constituents: custom.tickers.length, top_stocks: stocks,
+  };
+}
+
+function allThemeEntries() {
+  const customEntries = getCustomThemes().map(customThemeMetrics);
+  const officialEntries = officialThemes.map(t => ({ ...t, key: "official:" + t.code }));
+  return [...officialEntries, ...customEntries];
+}
+
+function renderThemeChips() {
+  const container = document.getElementById("themeChips");
+  const entries = allThemeEntries();
+  container.innerHTML = "";
+
+  entries.forEach(t => {
+    const btn = document.createElement("button");
+    const cls = t.return_20d_pct == null ? "" : (t.return_20d_pct >= 0 ? "chip-up" : "chip-down");
+    btn.className = "theme-chip " + cls + (selectedThemeKey === t.key ? " active" : "");
+    const retTxt = t.return_20d_pct != null ? fmtPct(t.return_20d_pct) : "-";
+    btn.innerHTML = t.isCustom ? `${t.name} <span style="opacity:.7">(직접 추가)</span> ${retTxt}` : `${t.name} ${retTxt}`;
+    btn.addEventListener("click", () => {
+      selectedThemeKey = t.key;
+      document.getElementById("themeEditorWrap").innerHTML = "";
+      renderThemeChips();
+      renderThemeStocks(t);
+    });
+    container.appendChild(btn);
+  });
+
+  const customList = getCustomThemes();
+  for (let i = customList.length; i < MAX_CUSTOM_THEMES; i++) {
+    const addBtn = document.createElement("button");
+    addBtn.className = "theme-chip add-slot";
+    addBtn.textContent = "+ 테마 추가";
+    addBtn.addEventListener("click", () => openThemeEditor(null));
+    container.appendChild(addBtn);
+  }
+}
+
+function openThemeEditor(existing) {
+  const wrap = document.getElementById("themeEditorWrap");
+  wrap.innerHTML = `
+    <div class="theme-editor">
+      <div class="label">테마 이름</div>
+      <input type="text" id="themeEditName" value="${existing ? existing.name : ""}" placeholder="예: 나만의 로봇 테마">
+      <div class="label">종목 코드(쉼표로 구분, 예: 005930,000660,005380)</div>
+      <input type="text" id="themeEditTickers" value="${existing ? existing.tickers.join(",") : ""}" placeholder="005930,000660">
+      <div class="btn-row">
+        <button class="primary" id="themeEditSave">저장</button>
+        ${existing ? `<button id="themeEditDelete">삭제</button>` : ""}
+        <button id="themeEditCancel">취소</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("themeEditSave").addEventListener("click", () => {
+    const name = document.getElementById("themeEditName").value.trim();
+    const tickers = document.getElementById("themeEditTickers").value.split(",").map(s => s.trim()).filter(Boolean);
+    if (!name || tickers.length === 0) { alert("이름과 종목 코드를 입력해주세요."); return; }
+    let list = getCustomThemes();
+    if (existing) {
+      list = list.map(c => c.id === existing.id ? { ...c, name, tickers } : c);
+    } else {
+      if (list.length >= MAX_CUSTOM_THEMES) { alert(`커스텀 테마는 최대 ${MAX_CUSTOM_THEMES}개까지입니다.`); return; }
+      list.push({ id: String(Date.now()), name, tickers });
+    }
+    saveCustomThemes(list);
+    wrap.innerHTML = "";
+    renderThemeChips();
+  });
+  if (existing) {
+    document.getElementById("themeEditDelete").addEventListener("click", () => {
+      saveCustomThemes(getCustomThemes().filter(c => c.id !== existing.id));
+      if (selectedThemeKey === "custom:" + existing.id) {
+        selectedThemeKey = null;
+        document.getElementById("themeStocksWrap").innerHTML = "";
+        document.getElementById("themeStockDetailWrap").innerHTML = "";
       }
-      detailRow.hidden = false;
-      tr.classList.add("open");
+      wrap.innerHTML = "";
+      renderThemeChips();
+    });
+  }
+  document.getElementById("themeEditCancel").addEventListener("click", () => { wrap.innerHTML = ""; });
+}
+
+function renderThemeStocks(t) {
+  const wrap = document.getElementById("themeStocksWrap");
+  document.getElementById("themeStockDetailWrap").innerHTML = "";
+  const stocks = t.top_stocks;
+  let editLink = "";
+  if (t.isCustom) {
+    editLink = ` <a href="#" id="themeChipEdit" style="font-size:12px">✎ 이 테마 수정</a>`;
+  }
+  if (!stocks || stocks.length === 0) {
+    wrap.innerHTML = `<div class="section-head"><h3 style="margin:0;font-size:14px">${t.name}${editLink}</h3></div><div class="empty">구성종목 정보 없음</div>`;
+  } else {
+    wrap.innerHTML = `
+      <div class="section-head"><h3 style="margin:0;font-size:14px">${t.name}${editLink}</h3></div>
+      <div class="stock-chip-list">
+        ${stocks.map((s, i) => `
+          <button class="stock-chip" data-code="${s.code}">
+            <span class="rank">${i === 0 ? "대장주" : i + 1}</span>${s.name}
+            <span class="mono" style="color:var(--ink-faint)"> · ${s.marcap_억 != null ? s.marcap_억.toLocaleString("ko-KR") + "억" : "-"}</span>
+          </button>`).join("")}
+      </div>
+    `;
+  }
+  if (t.isCustom) {
+    document.getElementById("themeChipEdit")?.addEventListener("click", (e) => { e.preventDefault(); openThemeEditor(t.custom); });
+  }
+  wrap.querySelectorAll(".stock-chip").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const code = btn.dataset.code;
+      const detailWrap = document.getElementById("themeStockDetailWrap");
+      detailWrap.innerHTML = `<div class="empty">불러오는 중…</div>`;
+      const u = findUniverseRow(code);
+      const sig = (u && universeRowToSig(u)) || await fetchSignalByTicker(code);
+      detailWrap.innerHTML = "";
+      if (sig) {
+        detailWrap.appendChild(buildSignalCard(sig, { expandFin: true }));
+      } else {
+        detailWrap.innerHTML = `<div class="empty">이 종목의 분석 정보가 아직 없습니다.</div>`;
+      }
     });
   });
 }
-loadThemes();
+
+async function loadThemes() {
+  const overviewEl = document.getElementById("themeOverview");
+  const chipsEl = document.getElementById("themeChips");
+
+  const [{ data, error }, { data: kospiRows }] = await Promise.all([
+    supabase.from("theme_snapshot")
+      .select("code,name,return_20d_pct,excess_vs_kospi_pct,n_constituents,top_stocks")
+      .order("return_20d_pct", { ascending: false }),
+    supabase.from("kospi_history").select("date,close").order("date", { ascending: true }).limit(60),
+  ]);
+  kospiRecentCloses = (kospiRows || []).map(r => r.close);
+
+  if (error) {
+    overviewEl.innerHTML = `<div class="empty">불러오기 실패: ${error.message}</div>`;
+    chipsEl.innerHTML = "";
+    return;
+  }
+  officialThemes = data || [];
+  overviewEl.innerHTML = themeOverviewHTML(officialThemes);
+  renderThemeChips();
+}
 
 document.querySelectorAll("#publicSubTab .tab-btn").forEach(b => {
   b.addEventListener("click", () => {
