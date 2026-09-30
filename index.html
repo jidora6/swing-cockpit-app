@@ -1003,11 +1003,18 @@ async function bootOwner() {
   if (!positions || positions.length === 0) {
     holdingsWrap.innerHTML = `<div class="empty">보유 중인 종목이 없습니다.</div>`;
   } else {
-    // 현재가치/수익 계산용 현재가 — universe 테이블(매일 갱신되는 종가)에서 보유 종목만 조회
+    // 현재가치/수익 계산용 현재가 — universe 테이블(스윙 종목)에서 우선 조회하고,
+    // 배당ETF(211900 등)처럼 유니버스에 없는 종목은 dividend_regime_status.dividend_prices로 보완
+    // (2026-09-30: 배당ETF만 수익률이 안 나오던 문제 — 유니버스에 애초에 없는 종목이라 발생)
     const holdingTickers = positions.map(p => p.ticker);
-    const { data: priceRows } = await supabase.from("universe").select("code,details").in("code", holdingTickers);
+    const [{ data: priceRows }, { data: divRows }] = await Promise.all([
+      supabase.from("universe").select("code,details").in("code", holdingTickers),
+      supabase.from("dividend_regime_status").select("dividend_prices").eq("id", 1),
+    ]);
     const priceByTicker = {};
     (priceRows || []).forEach(u => { if (u.details && u.details.price != null) priceByTicker[u.code] = u.details.price; });
+    const divPrices = (divRows && divRows[0] && divRows[0].dividend_prices) || {};
+    Object.entries(divPrices).forEach(([code, price]) => { if (priceByTicker[code] == null) priceByTicker[code] = price; });
 
     const rows = positions.map((p, i) => {
       const curPrice = priceByTicker[p.ticker];
