@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="card.css?v=9">
+<link rel="stylesheet" href="card.js?v=16">
 <style>
   :root{
     --bg:#eef6f1; --surface:#ffffff; --surface-2:#dfeee7;
@@ -572,7 +572,7 @@ const MAX_CUSTOM_THEMES = 2;
 const THEME_CHIP_LOOKBACK = 20;
 
 function getCustomThemes() {
-  try { return JSON.parse(localStorage.getItem(CUSTOM_THEME_KEY) || "[]"); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(CUSTOM_THEME_KEY) || "[]"); } cacard.css?v=16tch { return []; }
 }
 function saveCustomThemes(list) {
   try { localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(list)); } catch {}
