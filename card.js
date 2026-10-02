@@ -125,6 +125,7 @@ export function buildSignalCard(sig, opts = {}) {
   const chg = typeof d.chg_pct === "number" ? d.chg_pct : null;
   const chgClass = chg == null ? "" : (chg >= 0 ? "up" : "down");
 
+      ${entryPlanHtml(d.entry_plan)}
   const stopBufferPct = (d.price != null && d.stop_price != null && d.price > 0)
     ? (d.price - d.stop_price) / d.price * 100 : null;
 
@@ -250,4 +251,32 @@ export function buildSignalCard(sig, opts = {}) {
     }
   }
   return card;
+}
+
+
+function entryPlanHtml(plan) {
+  if (!plan || !plan.recommended_mode) return "";
+  const labels = { support: "지지 확인형", breakout: "돌파 확인형", wait: "관망형" };
+  const summaries = {
+    support: "지지대 확인 후 종가 회복",
+    breakout: "저항대 돌파·거래량 확인",
+    wait: "확인 신호 전 신규 진입 보류",
+  };
+  const methods = ["support", "breakout", "wait"].map(mode => {
+    const item = plan[mode] || {};
+    const current = plan.recommended_mode === mode;
+    return `<div class="entry-method ${current ? "recommended" : ""}">
+      <div class="entry-method-title">${labels[mode]}${current ? `<span class="entry-recommend">현재 추천</span>` : ""}</div>
+      <div class="entry-method-summary">${summaries[mode]}</div>
+      <div class="entry-method-price mono">${item.entry || "진입 보류"}</div>
+      <div class="entry-method-meta">${item.invalid ? `무효화: ${item.invalid}` : "조건 확인 필요"}${item.secondary ? `<br>다음 기준: ${item.secondary}` : ""}</div>
+    </div>`;
+  }).join("");
+  return `<div class="entry-plan">
+    <div class="entry-plan-head"><span>진입 계획</span><strong>${labels[plan.recommended_mode]}</strong></div>
+    ${plan.signal_reference_price != null ? `<div class="entry-plan-reference"><span>분석 기준가</span><b class="mono">${fmtWon(plan.signal_reference_price)}</b></div>` : ""}
+    ${plan.recommendation_reason ? `<div class="entry-plan-reason">${plan.recommendation_reason}</div>` : ""}
+    <div class="entry-methods">${methods}</div>
+    <div class="entry-plan-note">지지·저항과 거래량을 반영한 조건부 제안이며, 실제 주문은 사용자 확인 후 진행합니다.</div>
+  </div>`;
 }
