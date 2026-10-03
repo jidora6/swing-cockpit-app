@@ -71,7 +71,7 @@ function drawFinBars(svg, years, vals, fmtVal) {
   fmtVal = fmtVal || (v => v.toFixed(1) + "%");
   // null(산출불가) 연도는 건너뛰되 x축 자리는 유지 — years/vals 길이를 맞춰서 넘겨받는다.
   const present = vals.filter(v => v != null);
-  const W = 380, H = 74, padL = 6, padR = 6, padT = 6, padB = 14;
+  const W = 380, H = 80, padL = 6, padR = 6, padT = 16, padB = 14;
   const max = Math.max(...present, 0), min = Math.min(...present, 0);
   const range = (max - min) || 1;
   const zeroY = padT + (max / range) * (H - padT - padB);
