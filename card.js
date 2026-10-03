@@ -262,19 +262,29 @@ function entryPlanHtml(plan, fallbackStopPrice = null) {
   const stopBasis = plan.recommended_stop_basis || (stopPrice != null
     ? "기존 위험관리 기준: 분석 기준가에서 14일 ATR(평균 변동폭)의 2배를 차감한 값 · 단순 고정 비율이 아님"
     : "진입 전이므로 손절가 없음");
+  // "257,653~261,680원" / "281,813원 상향 돌파" 같은 문구를 금액(크게)과 보조 문구(작게)로 나눈다.
+  const splitPrice = (txt) => {
+    const t = String(txt || "").trim();
+    let m = t.match(/^([\d,]+)~([\d,]+)(원.*)$/);
+    if (m) return { big: m[1], sub: "~ " + m[2] + m[3] };
+    m = t.match(/^([\d,]+원)\s*(.*)$/);
+    if (m) return { big: m[1], sub: m[2] };
+    return { big: "", sub: t };
+  };
   const methods = ["support", "breakout", "wait"].map(mode => {
     const item = plan[mode] || {};
     const current = plan.recommended_mode === mode;
-    return `<div class="entry-method ${current ? "recommended" : ""}">
-      <div class="entry-method-title">${labels[mode]}${current ? `<span class="entry-recommend">현재 추천</span>` : ""}</div>
-      <div class="entry-method-summary">${summaries[mode]}</div>
-      <div class="entry-method-price mono">${item.entry || "진입 보류"}</div>
-      <div class="entry-method-meta">${item.invalid ? `무효화: ${item.invalid}` : "조건 확인 필요"}${item.secondary ? `<br>다음 기준: ${item.secondary}` : ""}</div>
+    const pr = splitPrice(item.entry || "진입 보류");
+    return `<div class="entry-method ${current ? "recommended" : ""}" title="${summaries[mode]}">
+      <div class="entry-method-title">${labels[mode]}</div>
+      ${current ? `<span class="entry-recommend">현재 추천</span>` : `<span class="entry-recommend-gap"></span>`}
+      <div class="entry-method-price mono">${pr.big || `<span class="entry-method-text">${pr.sub}</span>`}</div>
+      ${pr.big && pr.sub ? `<div class="entry-method-sub mono">${pr.sub}</div>` : ""}
+      <div class="entry-method-meta">${item.invalid ? `<b>무효화</b> ${item.invalid}` : "조건 확인 필요"}${item.secondary ? `<br><b>다음</b> ${item.secondary}` : ""}</div>
     </div>`;
   }).join("");
   return `<div class="entry-plan">
     <div class="entry-plan-head"><span>진입 계획</span><strong>${labels[plan.recommended_mode]}</strong></div>
-    ${plan.signal_reference_price != null ? `<div class="entry-plan-reference"><span>분석 기준가</span><b class="mono">${fmtWon(plan.signal_reference_price)}</b></div>` : ""}
     ${plan.recommendation_reason ? `<div class="entry-plan-reason">${plan.recommendation_reason}</div>` : ""}
     <div class="entry-plan-stop"><span>현재 추천 손절 기준</span><b class="mono">${stopPrice != null ? fmtWon(stopPrice) : "없음"}</b><small>${stopBasis}</small></div>
     <div class="entry-methods">${methods}</div>

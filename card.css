@@ -83,3 +83,37 @@
 .fin-grid .fin-tile:first-child{ grid-column:1 / -1; }
 .fin-grid .fin-tile{ min-width:0; }
 .fin-tile .delta{ white-space:normal; overflow-wrap:anywhere; }
+
+/* 진입 계획: 3방식을 모든 폭에서 가로 3단으로, 금액을 크게 */
+.entry-methods{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:6px; }
+.entry-method{ display:flex !important; flex-direction:column; padding:8px 7px !important; }
+.entry-method-title{ font-size:10.5px; font-weight:700; white-space:nowrap; }
+.entry-recommend{ display:block !important; width:max-content; margin:3px 0 0 !important; padding:1px 6px; font-size:9px; grid-column:auto !important; grid-row:auto !important; }
+.entry-recommend-gap{ display:block; height:16px; }
+.entry-method-price{ margin-top:6px !important; font-size:14.5px !important; font-weight:800; line-height:1.15; letter-spacing:-.02em; color:var(--ink); word-break:keep-all; }
+.entry-method.recommended .entry-method-price{ color:var(--accent); }
+.entry-method-text{ font-size:11px; font-weight:700; color:var(--ink-muted); letter-spacing:0; }
+.entry-method-sub{ margin-top:2px; font-size:10.5px; font-weight:600; color:var(--ink-muted); line-height:1.25; word-break:keep-all; }
+.entry-method-meta{ margin-top:auto !important; padding-top:7px; font-size:9px !important; line-height:1.4; color:var(--ink-faint); }
+.entry-method-meta b{ color:var(--ink-muted); font-weight:600; }
+.entry-method-meta, .entry-method-price, .entry-method-sub{ grid-column:auto !important; }
+
+/* 재무 지표 타일: 기본 버튼 모양 제거, 카드형 + 증감 배지 */
+.fin-grid{ gap:8px; }
+.fin-tile{ appearance:none; -webkit-appearance:none; font-family:inherit; color:inherit; text-align:left; cursor:pointer;
+  background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; box-shadow:none;
+  display:flex; flex-direction:column; gap:3px; transition:border-color .15s, background .15s; }
+.fin-tile .label{ font-size:10.5px; font-weight:600; color:var(--ink-muted); }
+.fin-tile .val{ font-size:17px; font-weight:800; letter-spacing:-.02em; margin-top:0; color:var(--ink); }
+.fin-tile .delta{ align-self:flex-start; margin-top:2px; padding:2px 7px; border-radius:99px; font-size:9.5px; font-weight:600; }
+.fin-tile .delta.up{ background:var(--up-soft); color:var(--up); }
+.fin-tile .delta.down{ background:var(--down-soft); color:var(--down); }
+.fin-tile .delta.flat{ background:var(--surface-2); color:var(--ink-faint); }
+.fin-tile .delta:empty{ display:none; }
+.fin-tile.active{ border-color:var(--accent); background:var(--accent-soft); }
+.fin-grid .fin-tile:first-child{ flex-direction:row; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.fin-grid .fin-tile:first-child .val{ font-size:20px; }
+
+/* 표(td)의 nowrap이 상세 카드 안으로 상속돼 글이 잘리는 문제 방지 */
+.detail-row td, .detail-row .detail-inner{ white-space:normal; }
+.entry-method-meta{ overflow-wrap:anywhere; }
