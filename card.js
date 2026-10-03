@@ -125,7 +125,7 @@ export function buildSignalCard(sig, opts = {}) {
   const chg = typeof d.chg_pct === "number" ? d.chg_pct : null;
   const chgClass = chg == null ? "" : (chg >= 0 ? "up" : "down");
 
-  const recommendedStop = d.entry_plan?.recommended_stop_price ?? d.stop_price;
+  const recommendedStop = d.stop_price;
   const stopBufferPct = (d.price != null && recommendedStop != null && d.price > 0)
     ? (d.price - recommendedStop) / d.price * 100 : null;
 
@@ -258,10 +258,15 @@ function entryPlanHtml(plan, fallbackStopPrice = null) {
     breakout: "저항대 돌파·거래량 확인",
     wait: "확인 신호 전 신규 진입 보류",
   };
-  const stopPrice = plan.recommended_stop_price ?? fallbackStopPrice;
-  const stopBasis = plan.recommended_stop_basis || (stopPrice != null
-    ? "기존 위험관리 기준: 분석 기준가에서 14일 ATR(평균 변동폭)의 2배를 차감한 값 · 단순 고정 비율이 아님"
-    : "진입 전이므로 손절가 없음");
+  // 과거 검증(2020~2026, 신호 1,331건)에서 3가지 방식이 즉시매수보다 낫다는 근거가 없어
+  // '추천'으로 표시하지 않고, 현재 위치 설명과 실제 운영 손절 기준만 보여준다.
+  const statusText = {
+    support: "현재 위치: 거래량 지지 구간이 비교적 가깝습니다.",
+    breakout: "현재 위치: 저항 매물대가 가깝고 거래량이 늘어난 상태입니다.",
+    wait: "현재 위치: 지지·돌파 조건이 뚜렷하지 않습니다.",
+  }[plan.recommended_mode];
+  const stopPrice = fallbackStopPrice;
+  const stopBasis = "진입가에서 14일 ATR(평균 변동폭)의 2배를 뺀 값 · 고정 비율이 아님";
   // "257,653~261,680원" / "281,813원 상향 돌파" 같은 문구를 금액(크게)과 보조 문구(작게)로 나눈다.
   const splitPrice = (txt) => {
     const t = String(txt || "").trim();
@@ -273,21 +278,19 @@ function entryPlanHtml(plan, fallbackStopPrice = null) {
   };
   const methods = ["support", "breakout", "wait"].map(mode => {
     const item = plan[mode] || {};
-    const current = plan.recommended_mode === mode;
     const pr = splitPrice(item.entry || "진입 보류");
-    return `<div class="entry-method ${current ? "recommended" : ""}" title="${summaries[mode]}">
+    return `<div class="entry-method" title="${summaries[mode]}">
       <div class="entry-method-title">${labels[mode]}</div>
-      ${current ? `<span class="entry-recommend">현재 추천</span>` : `<span class="entry-recommend-gap"></span>`}
       <div class="entry-method-price mono">${pr.big || `<span class="entry-method-text">${pr.sub}</span>`}</div>
       ${pr.big && pr.sub ? `<div class="entry-method-sub mono">${pr.sub}</div>` : ""}
       <div class="entry-method-meta">${item.invalid ? `<b>무효화</b> ${item.invalid}` : "조건 확인 필요"}${item.secondary ? `<br><b>다음</b> ${item.secondary}` : ""}</div>
     </div>`;
   }).join("");
   return `<div class="entry-plan">
-    <div class="entry-plan-head"><span>진입 계획</span><strong>${labels[plan.recommended_mode]}</strong></div>
-    ${plan.recommendation_reason ? `<div class="entry-plan-reason">${plan.recommendation_reason}</div>` : ""}
-    <div class="entry-plan-stop"><span>현재 추천 손절 기준</span><b class="mono">${stopPrice != null ? fmtWon(stopPrice) : "없음"}</b><small>${stopBasis}</small></div>
+    <div class="entry-plan-head"><span>진입 계획</span><strong>참고용</strong></div>
+    ${statusText ? `<div class="entry-plan-reason">${statusText}</div>` : ""}
+    <div class="entry-plan-stop"><span>운영 손절 기준</span><b class="mono">${stopPrice != null ? fmtWon(stopPrice) : "없음"}</b><small>${stopBasis}</small></div>
     <div class="entry-methods">${methods}</div>
-    <div class="entry-plan-note">지지·저항과 거래량을 반영한 조건부 제안이며, 실제 주문은 사용자 확인 후 진행합니다.</div>
+    <div class="entry-plan-note">거래량 매물대로 계산한 참고 가격대입니다. 과거 검증(2020~2026, 신호 1,331건)에서 세 방식 모두 즉시매수보다 나은 결과가 확인되지 않아 추천으로 표시하지 않습니다.</div>
   </div>`;
 }
