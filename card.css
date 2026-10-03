@@ -1,5 +1,75 @@
-/* 추천 종목 상세 카드 스타일 — index.html/owner.html 공용. card.js의 buildSignalCard()가 만드는 DOM용. */.badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:99px; letter-spacing:.02em; }.badge.normal{ background:var(--accent-soft); color:var(--accent); }.badge.muted{ background:var(--surface-2); color:var(--ink-muted); }.cards{ display:flex; flex-direction:column; gap:10px; }.card{  background:var(--surface); border:1px solid var(--border); border-radius:16px;  padding:14px 15px; box-shadow:var(--shadow);}.card .row1{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }.card .name{ font-size:15px; font-weight:700; }.card .code{ font-size:11px; color:var(--ink-faint); margin-left:6px; font-weight:400; }.card .price{ font-size:14px; font-weight:600; text-align:right; }.card .chg{ font-size:11px; margin-top:2px; text-align:right; }.card .chg.up{ color:var(--up); } .card .chg.down{ color:var(--down); }.why{ font-size:12px; color:var(--ink); line-height:1.55; margin-top:9px; background:var(--surface-2); border-radius:10px; padding:9px 11px; }.caution{ font-size:11.5px; color:var(--warn); line-height:1.5; margin-top:8px; background:var(--warn-soft); border-radius:10px; padding:8px 11px; font-weight:500; }.scandate{ font-size:10.5px; color:var(--ink-faint); margin-top:9px; }.spark{ margin-top:9px; }.spark svg{ display:block; width:100%; height:auto; }.spark-legend{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-faint); }.spark-status{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:5px; font-size:11px; font-weight:600; }.spark-status .buffer{ color:var(--ink-muted); }.spark-status .buffer.warn{ color:var(--down); }.risk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }.risk{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:7px 9px; }.risk .label{ font-size:9.5px; color:var(--ink-muted); }.risk .val{ font-size:12.5px; font-weight:600; margin-top:1px; }.risk .val.down{ color:var(--down); }.fin-toggle{ width:100%; margin-top:11px; padding:10px 12px; border-radius:10px; border:1px solid var(--border);  background:var(--surface-2); color:var(--ink); font-family:inherit; font-size:11.5px; font-weight:600;
+/* 추천 종목 상세 카드 스타일 — index.html/owner.html 공용. card.js의 buildSignalCard()가 만드는 DOM용. */
+.badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:99px; letter-spacing:.02em; }
+.badge.normal{ background:var(--accent-soft); color:var(--accent); }
+.badge.muted{ background:var(--surface-2); color:var(--ink-muted); }
+
+.cards{ display:flex; flex-direction:column; gap:10px; }
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:14px 15px; box-shadow:var(--shadow);
+}
+.card .row1{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.card .name{ font-size:15px; font-weight:700; }
+.card .code{ font-size:11px; color:var(--ink-faint); margin-left:6px; font-weight:400; }
+.card .price{ font-size:14px; font-weight:600; text-align:right; }
+.card .chg{ font-size:11px; margin-top:2px; text-align:right; }
+.card .chg.up{ color:var(--up); } .card .chg.down{ color:var(--down); }
+
+.why{ font-size:12px; color:var(--ink); line-height:1.55; margin-top:9px; background:var(--surface-2); border-radius:10px; padding:9px 11px; }
+.caution{ font-size:11.5px; color:var(--warn); line-height:1.5; margin-top:8px; background:var(--warn-soft); border-radius:10px; padding:8px 11px; font-weight:500; }
+.entry-plan{margin-top:11px;padding:10px 11px;background:var(--surface-2);border-radius:11px}.entry-plan-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px}.entry-plan-head span{color:var(--ink-muted)}.entry-plan-head strong{color:var(--accent);font-size:12px}.entry-plan-reference{display:flex;justify-content:space-between;margin-top:8px;padding:7px 8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:11px}.entry-plan-reference span{color:var(--ink-muted)}.entry-plan-reference b{font-size:12px}.entry-plan-reason{margin-top:7px;font-size:11px;line-height:1.45;color:var(--ink)}.entry-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.entry-method{position:relative;min-width:0;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px}.entry-method.recommended{border:1.5px solid var(--accent)}.entry-method-title{font-size:10.5px;font-weight:700;color:var(--ink)}.entry-recommend{display:block;width:max-content;margin-top:4px;padding:2px 5px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font-size:9px}.entry-method-summary{margin-top:5px;color:var(--ink-muted);font-size:9.5px;line-height:1.35}.entry-method-price{margin-top:7px;color:var(--ink);font-size:10.5px;font-weight:700;word-break:keep-all}.entry-method-meta{margin-top:4px;color:var(--ink-faint);font-size:9px;line-height:1.35}.entry-plan-note{margin-top:8px;color:var(--ink-faint);font-size:9.5px;line-height:1.4}@media(max-width:420px){.entry-methods{grid-template-columns:1fr}.entry-method{display:grid;grid-template-columns:1fr auto;gap:3px 8px}.entry-method-summary,.entry-method-price,.entry-method-meta{grid-column:1}.entry-recommend{grid-column:2;grid-row:1 / span 2;margin:0}}
 .entry-plan-stop{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:center;margin-top:8px;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
 .entry-plan-stop span{font-size:10px;color:var(--ink-muted)}
 .entry-plan-stop b{font-size:12px;color:var(--down)}
 .entry-plan-stop small{grid-column:1/-1;font-size:9.5px;line-height:1.4;color:var(--ink-faint)}
+.scandate{ font-size:10.5px; color:var(--ink-faint); margin-top:9px; }
+
+.spark{ margin-top:9px; }
+.spark svg{ display:block; width:100%; height:auto; }
+.spark-legend{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-faint); }
+
+.risk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
+.risk{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:7px 9px; }
+.risk .label{ font-size:9.5px; color:var(--ink-muted); }
+.risk .val{ font-size:12.5px; font-weight:600; margin-top:1px; }
+.risk .val.down{ color:var(--down); }
+
+.fin-toggle{ width:100%; margin-top:11px; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--ink); font-family:inherit; font-size:11.5px; font-weight:600;
+  display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+.fin-toggle .chev{ transition:transform .18s; color:var(--ink-faint); font-style:normal; }
+.fin-toggle[aria-expanded="true"] .chev{ transform:rotate(180deg); }
+.fin-label{ font-size:11.5px; font-weight:600; color:var(--ink-muted); margin-top:11px; }
+.fin-body{ margin-top:9px; padding-top:10px; border-top:1px solid var(--border); }
+.fin-body[hidden]{ display:none; }
+.fin-body svg{ display:block; width:100%; height:auto; }
+.fin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
+.fin-tile{ background:var(--surface-2); border-radius:9px; padding:7px 9px; }
+.fin-tile .label{ font-size:9.5px; color:var(--ink-muted); }
+.fin-tile .val{ font-size:13.5px; font-weight:700; margin-top:1px; }
+.fin-tile .delta{ font-size:9.5px; margin-top:2px; font-weight:600; }
+.fin-tile .delta.up{ color:var(--up); } .fin-tile .delta.down{ color:var(--down); } .fin-tile .delta.flat{ color:var(--ink-faint); font-weight:500; }
+.fin-note{ font-size:9.5px; color:var(--ink-faint); margin-top:8px; }
+
+.track{ font-size:10.5px; color:var(--ink-faint); margin-top:11px; padding-top:9px; border-top:1px solid var(--border); line-height:1.5; }
+
+/* 표 안에서 종목명을 클릭 가능한 것처럼 보이게 + 펼쳐지는 상세정보가 눈에 띄게 */
+.row-clickable{ cursor:pointer; }
+.row-clickable:hover td{ background:var(--surface-2); }
+.row-clickable td:first-child{ padding-right:6px; }
+.row-clickable td:first-child::after{
+  content:"자세히 ⌄"; display:block; margin-top:3px;
+  color:var(--accent); font-size:9.5px; font-weight:600; white-space:nowrap;
+}
+.row-clickable.open td:first-child::after{ content:"접기 ⌃"; }
+
+.detail-row td{ padding:0; background:var(--bg); }
+.detail-row .detail-inner{ padding:14px 10px; animation:detail-in .18s ease-out; }
+.detail-row .card{
+  border-color:var(--accent);
+  box-shadow:0 2px 6px rgba(0,0,0,.08), 0 14px 32px -12px rgba(0,0,0,.2);
+}
+@keyframes detail-in{
+  from{ opacity:0; transform:translateY(-4px); }
+  to{ opacity:1; transform:translateY(0); }
+}
