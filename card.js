@@ -125,8 +125,9 @@ export function buildSignalCard(sig, opts = {}) {
   const chg = typeof d.chg_pct === "number" ? d.chg_pct : null;
   const chgClass = chg == null ? "" : (chg >= 0 ? "up" : "down");
 
-  const stopBufferPct = (d.price != null && d.stop_price != null && d.price > 0)
-    ? (d.price - d.stop_price) / d.price * 100 : null;
+  const recommendedStop = d.entry_plan?.recommended_stop_price ?? d.stop_price;
+  const stopBufferPct = (d.price != null && recommendedStop != null && d.price > 0)
+    ? (d.price - recommendedStop) / d.price * 100 : null;
 
   const fin = d.fundamentals || null;
   let finHtml = "";
@@ -186,7 +187,7 @@ export function buildSignalCard(sig, opts = {}) {
     ${entryPlanHtml(d.entry_plan, d.stop_price)}
     ${finHtml}
     ${d.track_record ? `<div class="track">${d.track_record}</div>` : ""}
-    <div class="scandate">${sig.scan_date} 스캔 기준 추천 정보</div>
+    <div class="scandate">${sig.scan_date || d.entry_plan?.as_of || "최신 데이터"} 스캔 기준 추천 정보</div>
   `;
 
   if (d.spark && d.spark.length > 1) {
