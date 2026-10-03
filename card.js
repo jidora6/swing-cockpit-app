@@ -125,7 +125,6 @@ export function buildSignalCard(sig, opts = {}) {
   const chg = typeof d.chg_pct === "number" ? d.chg_pct : null;
   const chgClass = chg == null ? "" : (chg >= 0 ? "up" : "down");
 
-      ${entryPlanHtml(d.entry_plan)}
   const stopBufferPct = (d.price != null && d.stop_price != null && d.price > 0)
     ? (d.price - d.stop_price) / d.price * 100 : null;
 
@@ -184,6 +183,7 @@ export function buildSignalCard(sig, opts = {}) {
     </div>` : ""}</div>` : ""}
     ${showReason && sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
     ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
+    ${entryPlanHtml(d.entry_plan)}
     ${d.price != null || d.stop_price != null ? `
     <div class="risk-grid">
       ${d.price != null ? `<div class="risk"><div class="label">진입가</div><div class="val mono">${fmtWon(d.price)}</div></div>` : ""}
