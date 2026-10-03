@@ -183,12 +183,7 @@ export function buildSignalCard(sig, opts = {}) {
     </div>` : ""}</div>` : ""}
     ${showReason && sig.reason ? `<div class="why">${sig.reason}</div>` : ""}
     ${d.caution ? `<div class="caution">${d.caution}</div>` : ""}
-    ${entryPlanHtml(d.entry_plan)}
-    ${d.price != null || d.stop_price != null ? `
-    <div class="risk-grid">
-      ${d.price != null ? `<div class="risk"><div class="label">진입가</div><div class="val mono">${fmtWon(d.price)}</div></div>` : ""}
-      ${d.stop_price != null ? `<div class="risk"><div class="label">손절가</div><div class="val mono down">${fmtWon(d.stop_price)}</div></div>` : ""}
-    </div>` : ""}
+    ${entryPlanHtml(d.entry_plan, d.stop_price)}
     ${finHtml}
     ${d.track_record ? `<div class="track">${d.track_record}</div>` : ""}
     <div class="scandate">${sig.scan_date} 스캔 기준 추천 정보</div>
@@ -254,7 +249,7 @@ export function buildSignalCard(sig, opts = {}) {
 }
 
 
-function entryPlanHtml(plan) {
+function entryPlanHtml(plan, fallbackStopPrice = null) {
   if (!plan || !plan.recommended_mode) return "";
   const labels = { support: "지지 확인형", breakout: "돌파 확인형", wait: "관망형" };
   const summaries = {
@@ -262,6 +257,10 @@ function entryPlanHtml(plan) {
     breakout: "저항대 돌파·거래량 확인",
     wait: "확인 신호 전 신규 진입 보류",
   };
+  const stopPrice = plan.recommended_stop_price ?? fallbackStopPrice;
+  const stopBasis = plan.recommended_stop_basis || (stopPrice != null
+    ? "기존 위험관리 기준: 분석 기준가에서 14일 ATR(평균 변동폭)의 2배를 차감한 값 · 단순 고정 비율이 아님"
+    : "진입 전이므로 손절가 없음");
   const methods = ["support", "breakout", "wait"].map(mode => {
     const item = plan[mode] || {};
     const current = plan.recommended_mode === mode;
@@ -276,6 +275,7 @@ function entryPlanHtml(plan) {
     <div class="entry-plan-head"><span>진입 계획</span><strong>${labels[plan.recommended_mode]}</strong></div>
     ${plan.signal_reference_price != null ? `<div class="entry-plan-reference"><span>분석 기준가</span><b class="mono">${fmtWon(plan.signal_reference_price)}</b></div>` : ""}
     ${plan.recommendation_reason ? `<div class="entry-plan-reason">${plan.recommendation_reason}</div>` : ""}
+    <div class="entry-plan-stop"><span>현재 추천 손절 기준</span><b class="mono">${stopPrice != null ? fmtWon(stopPrice) : "없음"}</b><small>${stopBasis}</small></div>
     <div class="entry-methods">${methods}</div>
     <div class="entry-plan-note">지지·저항과 거래량을 반영한 조건부 제안이며, 실제 주문은 사용자 확인 후 진행합니다.</div>
   </div>`;
